@@ -1,0 +1,31 @@
+Pasos para compilar el APK en otro PC
+1. Instalar Docker Desktop (una sola vez)
+Descárgalo de https://www.docker.com/products/docker-desktop, instálalo y ábrelo. Espera a que el ícono de la ballena diga "running". (No instales nada de Flutter ni Android.)
+
+2. Llevar el código a ese PC
+Copia el archivo cuidapp-frontend.zip (USB, Drive, WhatsApp, etc.) y descomprímelo. Quedará la carpeta Frontend-Proyecto-Titulo-main.
+
+3. Saber a qué IP debe apuntar el APK
+El APK necesita la IP del PC donde correrá el backend. En ese PC del backend, abre PowerShell y corre:
+
+
+ipconfig
+Busca "Dirección IPv4" de tu adaptador wifi (algo como 192.168.1.X). Esa es la IP que usarás abajo.
+
+4. Abrir PowerShell dentro de la carpeta del proyecto
+
+cd "ruta\donde\descomprimiste\Frontend-Proyecto-Titulo-main"
+5. Compilar el APK
+Reemplaza IP_DEL_BACKEND por la IP del paso 3:
+
+
+docker build --target export --output type=local,dest=apk-out `
+  --build-arg API_BASE_URL=http://IP_DEL_BACKEND:8083 .
+⏳ La primera vez tarda varios minutos (descarga la imagen de Flutter, ~varios GB). Las siguientes son rápidas.
+
+6. Recoger el APK
+Aparece en:
+
+
+Frontend-Proyecto-Titulo-main\apk-out\app-release.apk
+Ese archivo lo instalas en el teléfono.

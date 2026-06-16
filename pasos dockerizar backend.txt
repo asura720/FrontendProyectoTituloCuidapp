@@ -1,0 +1,32 @@
+2. Llevar el código y descomprimir
+Copia cuidapp-backend.zip a ese PC y descomprímelo. Quedará la carpeta Backend-Proyecto-De-Titulo-main.
+
+3. Dar permiso a Docker para entrar al MySQL (una sola vez)
+Abre la Terminal de Laragon, entra con:
+
+
+mysql -u root
+y pega:
+
+
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+Si tu MySQL tiene contraseña, ponla en el docker-compose.yml en las 4 líneas SPRING_DATASOURCE_PASSWORD: "" (entre las comillas).
+
+4. Abrir PowerShell dentro de la carpeta del proyecto
+
+cd "ruta\donde\descomprimiste\Backend-Proyecto-De-Titulo-main"
+5. Construir y levantar todo
+
+docker compose up --build -d
+⏳ La primera vez tarda varios minutos (descarga dependencias de Maven de los 5 servicios). Las bases de datos cuidapp_auth, cuidapp_meds, etc. se crean solas.
+
+6. Verificar que arrancó bien
+
+docker compose ps
+Los 5 deben aparecer como "Up". Para ver logs en vivo:
+
+
+docker compose logs -f
+El backend queda disponible en el gateway: http://localhost:8083 (y por wifi en http://IP_DEL_PC:8083).
