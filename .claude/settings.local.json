@@ -22,7 +22,8 @@
       "Bash(mv \"Frontend-Proyecto-Titulo-main/google-services.json\" \"Frontend-Proyecto-Titulo-main/android/app/google-services.json\")",
       "Bash(mv \"Backend-Proyecto-De-Titulo-main/cuidapp-8a1a7-firebase-adminsdk-fbsvc-5c009082c2.json\" \"Backend-Proyecto-De-Titulo-main/firebase-service-account.json\")",
       "Bash(ls -lh \"Frontend-Proyecto-Titulo-main/android/app/google-services.json\")",
-      "Bash(ls -lh \"Backend-Proyecto-De-Titulo-main/firebase-service-account.json\")"
+      "Bash(ls -lh \"Backend-Proyecto-De-Titulo-main/firebase-service-account.json\")",
+      "Bash(git merge *)"
     ]
   }
 }

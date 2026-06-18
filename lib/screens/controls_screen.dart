@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../providers/controls_provider.dart';
 
 class ControlsScreen extends StatefulWidget {
   const ControlsScreen({super.key});
@@ -9,21 +11,7 @@ class ControlsScreen extends StatefulWidget {
 }
 
 class _ControlsScreenState extends State<ControlsScreen> {
-  final List<Map<String, dynamic>> _controls = [];
-
-  Map<String, dynamic>? get _proximoControl {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final futuros = _controls.where((c) {
-      final date = c['date'] as DateTime;
-      return !DateTime(date.year, date.month, date.day).isBefore(today);
-    }).toList();
-    if (futuros.isEmpty) return null;
-    futuros.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
-    return futuros.first;
-  }
-
-  void _openModal({Map<String, dynamic>? existing, int? index}) {
+  void _openModal({MedicalControl? existing, int? index}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -36,15 +24,27 @@ class _ControlsScreenState extends State<ControlsScreen> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: _ControlModal(
-            initialControl: existing,
-            onSaved: (control) {
-              setState(() {
-                if (index != null) {
-                  _controls[index] = control;
-                } else {
-                  _controls.add(control);
-                }
-              });
+            initialControl: existing == null
+                ? null
+                : {
+                    'doctorName': existing.doctorName,
+                    'specialty': existing.specialty,
+                    'date': existing.date,
+                    'time': existing.time,
+                  },
+            onSaved: (data) {
+              final control = MedicalControl(
+                doctorName: data['doctorName'],
+                specialty: data['specialty'],
+                date: data['date'],
+                time: data['time'],
+              );
+              final provider = context.read<ControlsProvider>();
+              if (index != null) {
+                provider.update(index, control);
+              } else {
+                provider.add(control);
+              }
               Navigator.pop(context);
             },
           ),
@@ -53,14 +53,12 @@ class _ControlsScreenState extends State<ControlsScreen> {
     );
   }
 
-  void _confirmDelete(int index) {
+  void _confirmDelete(int index, String doctorName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar control'),
-        content: Text(
-          '¿Eliminar el control con ${_controls[index]['doctorName']}?',
-        ),
+        content: Text('¿Eliminar el control con $doctorName?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -69,7 +67,7 @@ class _ControlsScreenState extends State<ControlsScreen> {
           TextButton(
             style: TextButton.styleFrom(foregroundColor: const Color(0xFFd4183d)),
             onPressed: () {
-              setState(() => _controls.removeAt(index));
+              context.read<ControlsProvider>().removeAt(index);
               Navigator.pop(context);
             },
             child: const Text('Eliminar'),
@@ -81,7 +79,9 @@ class _ControlsScreenState extends State<ControlsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final proximo = _proximoControl;
+    final controlsProvider = context.watch<ControlsProvider>();
+    final controls = controlsProvider.controls;
+    final proximo = controlsProvider.proximo;
 
     return Scaffold(
       backgroundColor: const Color(0xFFffffff),
@@ -218,7 +218,7 @@ class _ControlsScreenState extends State<ControlsScreen> {
             ),
           ),
 
-          if (_controls.isEmpty)
+          if (controls.isEmpty)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
@@ -239,17 +239,17 @@ class _ControlsScreenState extends State<ControlsScreen> {
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final control = _controls[index];
+                  final control = controls[index];
                   return _ControlCard(
-                    doctorName: control['doctorName'],
-                    specialty: control['specialty'],
-                    date: control['date'],
-                    time: control['time'],
+                    doctorName: control.doctorName,
+                    specialty: control.specialty,
+                    date: control.date,
+                    time: control.time,
                     onEdit: () => _openModal(existing: control, index: index),
-                    onDelete: () => _confirmDelete(index),
+                    onDelete: () => _confirmDelete(index, control.doctorName),
                   );
                 },
-                childCount: _controls.length,
+                childCount: controls.length,
               ),
             ),
 
@@ -259,7 +259,7 @@ class _ControlsScreenState extends State<ControlsScreen> {
     );
   }
 
-  Widget _buildProximoControl(Map<String, dynamic>? control) {
+  Widget _buildProximoControl(MedicalControl? control) {
     if (control == null) {
       return Container(
         decoration: BoxDecoration(
@@ -297,8 +297,8 @@ class _ControlsScreenState extends State<ControlsScreen> {
       );
     }
 
-    final date = control['date'] as DateTime;
-    final time = control['time'] as TimeOfDay;
+    final date = control.date;
+    final time = control.time;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final controlDay = DateTime(date.year, date.month, date.day);
@@ -358,7 +358,7 @@ class _ControlsScreenState extends State<ControlsScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            control['doctorName'],
+            control.doctorName,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -366,7 +366,7 @@ class _ControlsScreenState extends State<ControlsScreen> {
             ),
           ),
           Text(
-            control['specialty'],
+            control.specialty,
             style: const TextStyle(fontSize: 13, color: Colors.white70),
           ),
           const SizedBox(height: 14),

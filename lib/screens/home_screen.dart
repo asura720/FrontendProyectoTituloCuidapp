@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/medication_provider.dart';
+import '../providers/controls_provider.dart';
 import '../widgets/sos_button.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -69,6 +70,8 @@ class HomeScreen extends StatelessWidget {
                   final takenCount = medProvider.getTakenTodayCount();
                   final totalCount = medications.length;
                   final adherence = medProvider.getTodayAdherence().toString();
+                  final controlsCount =
+                      context.watch<ControlsProvider>().count.toString();
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +156,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           _StatCard(
                             title: 'Controles',
-                            value: '2',
+                            value: controlsCount,
                             backgroundColor: const Color(0xFFe9ebef),
                             textColor: const Color(0xFF030213),
                           ),

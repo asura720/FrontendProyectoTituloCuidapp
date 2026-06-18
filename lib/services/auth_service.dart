@@ -25,9 +25,11 @@ class AuthService {
     return Map<String, dynamic>.from(response.data);
   }
 
-  static Future<Map<String, dynamic>> forgotPassword(String email) async {
-    final response = await ApiService.dio.post('/api/auth/forgot-password', data: {
+  static Future<Map<String, dynamic>> resetPassword(
+      String email, String newPassword) async {
+    final response = await ApiService.dio.post('/api/auth/reset-password', data: {
       'email': email,
+      'password': newPassword,
     });
     return Map<String, dynamic>.from(response.data);
   }

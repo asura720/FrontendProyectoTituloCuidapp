@@ -13,19 +13,27 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   late TextEditingController _emailController;
+  late TextEditingController _passwordController;
+  late TextEditingController _confirmController;
   bool _isLoading = false;
-  bool _emailSent = false;
+  bool _done = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail ?? '');
+    _passwordController = TextEditingController();
+    _confirmController = TextEditingController();
   }
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -33,13 +41,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$').hasMatch(email);
   }
 
-  void _sendResetEmail() async {
+  void _resetPassword() async {
     final email = _emailController.text.trim();
 
     if (!_isValidEmail(email)) {
-      setState(() {
-        _errorMessage = 'Ingresa un correo electrónico válido';
-      });
+      setState(() => _errorMessage = 'Ingresa un correo electrónico válido');
+      return;
+    }
+    if (_passwordController.text.length < 4) {
+      setState(() =>
+          _errorMessage = 'La contraseña debe tener al menos 4 caracteres');
+      return;
+    }
+    if (_passwordController.text != _confirmController.text) {
+      setState(() => _errorMessage = 'Las contraseñas no coinciden');
       return;
     }
 
@@ -49,17 +64,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.forgotPassword(email);
+    final success =
+        await authProvider.resetPassword(email, _passwordController.text);
 
     if (!mounted) return;
 
     setState(() {
       _isLoading = false;
       if (success) {
-        _emailSent = true;
+        _done = true;
       } else {
-        _errorMessage = authProvider.error ??
-            'No se pudo enviar el correo de recuperación';
+        _errorMessage =
+            authProvider.error ?? 'No se pudo restablecer la contraseña';
       }
     });
   }
@@ -131,7 +147,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ],
                   ),
                   padding: const EdgeInsets.all(32),
-                  child: _emailSent
+                  child: _done
                       ? _buildSuccessContent()
                       : _buildFormContent(),
                 ),
@@ -159,7 +175,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.',
+          'Ingresa tu correo y la nueva contraseña para restablecer el acceso a tu cuenta.',
           style: TextStyle(fontSize: 13, color: Colors.grey),
         ),
         const SizedBox(height: 24),
@@ -168,7 +184,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          onSubmitted: (_) => _sendResetEmail(),
           decoration: InputDecoration(
             labelText: 'Correo Electrónico',
             prefixIcon: const Icon(
@@ -185,6 +200,65 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               horizontal: 16,
               vertical: 14,
             ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Nueva contraseña
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+            labelText: 'Nueva Contraseña',
+            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1A56DB)),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: const Color(0xFF1A56DB),
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF5F7FB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Confirmar contraseña
+        TextField(
+          controller: _confirmController,
+          obscureText: _obscureConfirm,
+          onSubmitted: (_) => _resetPassword(),
+          decoration: InputDecoration(
+            labelText: 'Confirmar Contraseña',
+            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1A56DB)),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureConfirm
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: const Color(0xFF1A56DB),
+              ),
+              onPressed: () =>
+                  setState(() => _obscureConfirm = !_obscureConfirm),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF5F7FB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
         ),
         const SizedBox(height: 16),
@@ -228,7 +302,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _sendResetEmail,
+            onPressed: _isLoading ? null : _resetPassword,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1A56DB),
               disabledBackgroundColor:
@@ -249,7 +323,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   )
                 : const Text(
-                    'Enviar Enlace',
+                    'Restablecer Contraseña',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -291,14 +365,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             shape: BoxShape.circle,
           ),
           child: const Icon(
-            Icons.mark_email_read_outlined,
+            Icons.check_circle_outline,
             size: 36,
             color: Color(0xFF2E7D32),
           ),
         ),
         const SizedBox(height: 20),
         const Text(
-          'Correo enviado',
+          'Contraseña actualizada',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -306,11 +380,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Si existe una cuenta asociada a ${_emailController.text.trim()}, '
-          'recibirás un correo con las instrucciones para restablecer tu contraseña.',
+        const Text(
+          'Tu contraseña se cambió correctamente. Ya puedes iniciar sesión con la nueva contraseña.',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, color: Colors.grey),
+          style: TextStyle(fontSize: 13, color: Colors.grey),
         ),
         const SizedBox(height: 24),
         SizedBox(
@@ -332,24 +405,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: _isLoading
-              ? null
-              : () {
-                  setState(() {
-                    _emailSent = false;
-                  });
-                },
-          child: const Text(
-            'No recibí el correo, reenviar',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF1A56DB),
-              fontWeight: FontWeight.w600,
             ),
           ),
         ),

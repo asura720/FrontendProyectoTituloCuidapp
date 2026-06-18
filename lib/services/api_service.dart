@@ -23,7 +23,7 @@ class ApiService {
           ..interceptors.add(
             InterceptorsWrapper(
               onRequest: (options, handler) async {
-                final token = await _storage.read(key: 'jwt_token');
+                final token = await getToken();
                 if (token != null) {
                   options.headers['Authorization'] = 'Bearer $token';
                 }
@@ -35,14 +35,38 @@ class ApiService {
   }
 
   static Future<void> saveToken(String token) async {
-    await _storage.write(key: 'jwt_token', value: token);
+    try {
+      await _storage.write(key: 'jwt_token', value: token);
+    } catch (_) {
+      // Si el almacenamiento quedó en mal estado, lo limpiamos y reintentamos.
+      await _safeDeleteAll();
+      await _storage.write(key: 'jwt_token', value: token);
+    }
   }
 
   static Future<void> deleteToken() async {
-    await _storage.delete(key: 'jwt_token');
+    try {
+      await _storage.delete(key: 'jwt_token');
+    } catch (_) {
+      await _safeDeleteAll();
+    }
   }
 
+  /// Lee el token de forma tolerante: si el valor guardado está corrupto
+  /// (BadPaddingException tras reinstalar la app), lo limpia y devuelve null
+  /// en vez de romper la petición.
   static Future<String?> getToken() async {
-    return await _storage.read(key: 'jwt_token');
+    try {
+      return await _storage.read(key: 'jwt_token');
+    } catch (_) {
+      await _safeDeleteAll();
+      return null;
+    }
+  }
+
+  static Future<void> _safeDeleteAll() async {
+    try {
+      await _storage.deleteAll();
+    } catch (_) {}
   }
 }

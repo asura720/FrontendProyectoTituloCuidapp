@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 // Importaciones de tus archivos (Asegúrate que las rutas sean correctas)
 import 'providers/medication_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/controls_provider.dart';
 import 'screens/main_nav_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/push_service.dart';
@@ -27,6 +28,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MedicationProvider()),
+        ChangeNotifierProvider(create: (_) => ControlsProvider()..load()),
       ],
       child: const CuidApp(),
     ),

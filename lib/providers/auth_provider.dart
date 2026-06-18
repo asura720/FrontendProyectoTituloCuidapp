@@ -93,17 +93,17 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> forgotPassword(String email) async {
+  Future<bool> resetPassword(String email, String newPassword) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await AuthService.forgotPassword(email);
+      await AuthService.resetPassword(email, newPassword);
       return true;
     } on DioException catch (e) {
       _error = e.response?.data['message'] ??
-          'No se pudo enviar el correo de recuperación';
+          'No se pudo restablecer la contraseña';
       notifyListeners();
       return false;
     } finally {

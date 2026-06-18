@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'dart:typed_data';
+import '../services/catalog_service.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -42,22 +43,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     },
   ];
 
-  // Base de medicamentos para búsqueda
-  final Map<String, String> _medicamentosDB = {
-    '8714789987654': 'Aspirina 500mg',
-    '8714789987620': 'Ibuprofeno 200mg',
-    '8714789987789': 'Vitamina C 1000mg',
-    '7501058601080': 'Paracetamol 500mg',
-    '7501002801101': 'Amoxicilina 500mg',
-    '7804620833863': 'Ibuprofeno (Tu Caja)',
-    'aspirina': 'Aspirina 500mg',
-    'ibuprofeno 600mg': 'Ibuprofeno 600mg',
-    'ibuprofeno': 'Ibuprofeno 200mg',
-    'vitamina': 'Vitamina C 1000mg',
-    'paracetamol': 'Paracetamol 500mg',
-    'amoxicilina': 'Amoxicilina 500mg',
-  };
-
   @override
   void initState() {
     super.initState();
@@ -91,8 +76,47 @@ class _ScannerScreenState extends State<ScannerScreen> {
       });
       _scannerController.stop();
 
-      _showScanResult(scannedValue, 'barcode');
+      _lookupBarcodeAndShow(scannedValue);
     }
+  }
+
+  /// Consulta el catálogo del backend por código de barras y muestra el resultado.
+  Future<void> _lookupBarcodeAndShow(String code) async {
+    Map<String, dynamic>? med;
+    try {
+      med = await CatalogService.findByBarcode(code);
+    } catch (_) {
+      med = null;
+    }
+    if (!mounted) return;
+    _showScanResult(code, 'barcode', med);
+  }
+
+  /// Busca en el catálogo por las palabras del texto OCR y muestra el resultado.
+  Future<void> _lookupOcrAndShow(String ocrText) async {
+    Map<String, dynamic>? med;
+    final words = ocrText
+        .toLowerCase()
+        .replaceAll('\n', ' ')
+        .split(RegExp(r'[^a-záéíóúñ0-9]+'))
+        .where((w) => w.length > 3)
+        .toList();
+    try {
+      for (final w in words.take(6)) {
+        final results = await CatalogService.search(w);
+        if (results.isNotEmpty) {
+          med = results.first;
+          break;
+        }
+      }
+    } catch (_) {
+      med = null;
+    }
+    if (!mounted) return;
+    final shown = med != null
+        ? (med['name']?.toString() ?? ocrText)
+        : (ocrText.length > 40 ? ocrText.substring(0, 40) : ocrText);
+    _showScanResult(shown, 'ocr', med);
   }
 
   Future<void> _performOCR() async {
@@ -136,45 +160,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
       // 5. Limpiar el archivo temporal
       await tempFile.delete();
 
-      // 6. Buscar el texto del medicamento en el resultado
-      String? textToSearch;
-      // Reemplazamos saltos de línea por espacios para buscar frases completas
-      final textFromOCR = recognizedText.text.toLowerCase().replaceAll('\n', ' ');
-
-      // 6.1 Primero buscamos coincidencias exactas (Ej: "ibuprofeno 600mg")
-      for (final entry in _medicamentosDB.entries) {
-        final keyLower = entry.key.toLowerCase();
-
-        if (textFromOCR.contains(keyLower) && keyLower.length > 3) {
-          textToSearch = keyLower;
-          break;
-        }
-      }
-
-      // 6.2 Si no hay coincidencia exacta, buscamos por la primera palabra (Ej: "ibuprofeno")
-      if (textToSearch == null) {
-        for (final entry in _medicamentosDB.entries) {
-          final valueFirstWordLower = entry.value.toLowerCase().split(' ')[0];
-          if (textFromOCR.contains(valueFirstWordLower) &&
-              valueFirstWordLower.length > 3) {
-            textToSearch = valueFirstWordLower;
-            break;
-          }
-        }
-      }
-
-      if (textToSearch != null) {
-        _showScanResult(textToSearch, 'ocr');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se reconoció un medicamento. Intenta de nuevo.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        _resumeScanning();
-      }
+      // 6. Buscar el medicamento en el catálogo del backend usando el texto OCR
+      await _lookupOcrAndShow(recognizedText.text);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error en OCR: $e'),
@@ -185,38 +174,23 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  void _showScanResult(String scannedValue, String detectionType) {
-    // Buscar en la base de datos
+  void _showScanResult(
+    String scannedValue,
+    String detectionType,
+    Map<String, dynamic>? med,
+  ) {
+    // Construir el item a partir del resultado del catálogo (backend)
     Map<String, dynamic>? foundItem;
-    String displayName = '';
-
-    // Búsqueda exacta por código
-    if (_medicamentosDB.containsKey(scannedValue)) {
-      displayName = _medicamentosDB[scannedValue]!;
+    if (med != null) {
       foundItem = {
-        'barcode': scannedValue,
-        'name': displayName,
+        'barcode': (med['barcode'] ?? scannedValue).toString(),
+        'name': (med['name'] ?? 'Medicamento').toString(),
         'date': DateTime.now(),
         'status': 'success',
         'type': detectionType,
+        'dosage': med['dosage']?.toString() ?? '',
+        'form': med['form']?.toString() ?? '',
       };
-    } else {
-      // Búsqueda por nombre (parcial)
-      final searchLower = scannedValue.toLowerCase();
-      for (var entry in _medicamentosDB.entries) {
-        if (entry.value.toLowerCase().contains(searchLower) ||
-            entry.key.toLowerCase().contains(searchLower)) {
-          displayName = entry.value;
-          foundItem = {
-            'barcode': entry.key,
-            'name': displayName,
-            'date': DateTime.now(),
-            'status': 'success',
-            'type': detectionType,
-          };
-          break;
-        }
-      }
     }
 
     showModalBottomSheet(
