@@ -28,4 +28,17 @@ class MedicationService {
     final response = await ApiService.dio.patch('/api/medications/$id/toggle');
     return Map<String, dynamic>.from(response.data);
   }
+
+  /// Marca/desmarca una dosis puntual de hoy por horario ("HH:mm").
+  static Future<Map<String, dynamic>> markDose(
+    String id,
+    String time, {
+    bool taken = true,
+  }) async {
+    final response = await ApiService.dio.patch(
+      '/api/medications/$id/dose',
+      data: {'time': time, 'taken': taken},
+    );
+    return Map<String, dynamic>.from(response.data);
+  }
 }

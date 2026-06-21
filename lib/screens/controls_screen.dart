@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import '../providers/controls_provider.dart';
+import '../utils/health_tips.dart';
+import '../widgets/app_header.dart';
 
 class ControlsScreen extends StatefulWidget {
   const ControlsScreen({super.key});
@@ -11,6 +14,15 @@ class ControlsScreen extends StatefulWidget {
 }
 
 class _ControlsScreenState extends State<ControlsScreen> {
+  // Consejo elegido al entrar a la pestaña (cambia cada vez que se abre)
+  late String _consejo;
+
+  @override
+  void initState() {
+    super.initState();
+    _consejo = randomHealthTip();
+  }
+
   void _openModal({MedicalControl? existing, int? index}) {
     showModalBottomSheet(
       context: context,
@@ -87,46 +99,7 @@ class _ControlsScreenState extends State<ControlsScreen> {
       backgroundColor: const Color(0xFFffffff),
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            backgroundColor: const Color(0xFF1A56DB),
-            elevation: 4,
-            expandedHeight: 160,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF1A56DB), Color(0xFF2563EB)],
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Controles Médicos',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        DateFormat('d \'de\' MMMM yyyy', 'es_ES').format(DateTime.now()),
-                        style: const TextStyle(fontSize: 12, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          sectionSliverAppBar('Controles Médicos'),
 
           SliverToBoxAdapter(
             child: Padding(
@@ -158,11 +131,11 @@ class _ControlsScreenState extends State<ControlsScreen> {
                           child: const Icon(Icons.lightbulb, color: Colors.white, size: 24),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Consejo de Salud',
                                 style: TextStyle(
                                   fontSize: 12,
@@ -170,10 +143,10 @@ class _ControlsScreenState extends State<ControlsScreen> {
                                   color: Colors.white70,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                'Recuerda tomar tus medicinas a la misma hora cada día',
-                                style: TextStyle(
+                                _consejo,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -187,30 +160,14 @@ class _ControlsScreenState extends State<ControlsScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Título lista + botón agregar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Todos los Controles',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF030213),
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => _openModal(),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A56DB),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(Icons.add, color: Colors.white, size: 20),
-                        ),
-                      ),
-                    ],
+                  // Título lista
+                  const Text(
+                    'Todos los Controles',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF030213),
+                    ),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -253,8 +210,18 @@ class _ControlsScreenState extends State<ControlsScreen> {
               ),
             ),
 
-          const SliverPadding(padding: EdgeInsets.only(bottom: 20)),
+          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF1A56DB),
+        elevation: 4,
+        onPressed: () => _openModal(),
+        icon: const Icon(Icons.add, color: Colors.white, size: 24),
+        label: const Text(
+          'Agregar',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -538,16 +505,49 @@ class _ControlModal extends StatefulWidget {
 
 class _ControlModalState extends State<_ControlModal> {
   late final TextEditingController _doctorController;
-  late final TextEditingController _specialtyController;
+  String? _selectedSpecialty;
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
+
+  final SpeechToText _speech = SpeechToText();
+  bool _listening = false;
+
+  // Categorías de especialidad médica
+  final List<String> _specialties = [
+    'Medicina General',
+    'Cardiología',
+    'Dermatología',
+    'Endocrinología',
+    'Gastroenterología',
+    'Ginecología',
+    'Kinesiología',
+    'Nefrología',
+    'Neurología',
+    'Nutrición',
+    'Odontología',
+    'Oftalmología',
+    'Oncología',
+    'Otorrinolaringología',
+    'Pediatría',
+    'Psicología',
+    'Psiquiatría',
+    'Reumatología',
+    'Traumatología',
+    'Urología',
+    'Otro',
+  ];
 
   @override
   void initState() {
     super.initState();
     final existing = widget.initialControl;
     _doctorController = TextEditingController(text: existing?['doctorName'] ?? '');
-    _specialtyController = TextEditingController(text: existing?['specialty'] ?? '');
+    final esp = existing?['specialty'] as String?;
+    if (esp != null && esp.isNotEmpty) {
+      // Si la especialidad guardada no está en la lista, la agregamos para no perderla
+      if (!_specialties.contains(esp)) _specialties.insert(_specialties.length - 1, esp);
+      _selectedSpecialty = esp;
+    }
     _selectedDate = existing?['date'] ?? DateTime.now();
     _selectedTime = existing?['time'] ?? TimeOfDay.now();
   }
@@ -555,7 +555,6 @@ class _ControlModalState extends State<_ControlModal> {
   @override
   void dispose() {
     _doctorController.dispose();
-    _specialtyController.dispose();
     super.dispose();
   }
 
@@ -575,18 +574,61 @@ class _ControlModalState extends State<_ControlModal> {
   }
 
   void _save() {
-    if (_doctorController.text.isEmpty || _specialtyController.text.isEmpty) {
+    if (_doctorController.text.isEmpty ||
+        _selectedSpecialty == null ||
+        _selectedSpecialty!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor completa todos los campos')),
       );
       return;
     }
+    // El calendario y el recordatorio 2h antes los maneja el ControlsProvider.
     widget.onSaved({
       'doctorName': _doctorController.text.trim(),
-      'specialty': _specialtyController.text.trim(),
+      'specialty': _selectedSpecialty!,
       'date': _selectedDate,
       'time': _selectedTime,
     });
+  }
+
+  Future<void> _listen() async {
+    if (_listening) return;
+    final available = await _speech.initialize(
+      onStatus: (s) {
+        if (s == 'done' || s == 'notListening') {
+          if (mounted) setState(() => _listening = false);
+        }
+      },
+      onError: (_) {
+        if (mounted) setState(() => _listening = false);
+      },
+    );
+    if (!available) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Micrófono no disponible o permiso denegado')),
+      );
+      return;
+    }
+    setState(() => _listening = true);
+    _speech.listen(
+      localeId: 'es_CL',
+      listenFor: const Duration(seconds: 15),
+      pauseFor: const Duration(seconds: 4),
+      onResult: (res) {
+        if (!res.finalResult) return;
+        final p = _parseVoiceControl(res.recognizedWords, _specialties);
+        setState(() {
+          if (p.doctor != null && p.doctor!.isNotEmpty) {
+            _doctorController.text = p.doctor!;
+          }
+          if (p.specialty != null) _selectedSpecialty = p.specialty;
+          if (p.date != null) _selectedDate = p.date!;
+          if (p.time != null) _selectedTime = p.time!;
+          _listening = false;
+        });
+      },
+    );
   }
 
   @override
@@ -624,7 +666,39 @@ class _ControlModalState extends State<_ControlModal> {
                 color: Color(0xFF1A1A1A),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            // Dictado por voz: llena doctor, especialidad, fecha y hora
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _listening
+                      ? const Color(0xFFD32F2F)
+                      : const Color(0xFF1A56DB),
+                  side: BorderSide(
+                    color: _listening
+                        ? const Color(0xFFD32F2F)
+                        : const Color(0xFF1A56DB),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: Icon(_listening ? Icons.mic : Icons.mic_none),
+                label: Text(
+                  _listening ? 'Escuchando... habla ahora' : 'Dictar por voz',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                onPressed: _listening ? null : _listen,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Ej: "Doctor Pérez cardiología el 15 de julio a las 10 de la mañana"',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _doctorController,
               decoration: InputDecoration(
@@ -640,8 +714,9 @@ class _ControlModalState extends State<_ControlModal> {
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _specialtyController,
+            DropdownButtonFormField<String>(
+              initialValue: _selectedSpecialty,
+              isExpanded: true,
               decoration: InputDecoration(
                 labelText: 'Especialidad',
                 prefixIcon: const Icon(Icons.medical_services_outlined, color: Color(0xFF1A56DB)),
@@ -653,6 +728,11 @@ class _ControlModalState extends State<_ControlModal> {
                 ),
                 labelStyle: const TextStyle(color: Colors.grey),
               ),
+              hint: const Text('Selecciona una categoría'),
+              items: _specialties
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (value) => setState(() => _selectedSpecialty = value),
             ),
             const SizedBox(height: 16),
             GestureDetector(
@@ -747,4 +827,139 @@ class _ControlModalState extends State<_ControlModal> {
       ),
     );
   }
+}
+
+/// Resultado del parseo de voz para un control médico.
+class _VoiceControl {
+  final String? doctor;
+  final String? specialty;
+  final DateTime? date;
+  final TimeOfDay? time;
+  _VoiceControl({this.doctor, this.specialty, this.date, this.time});
+}
+
+/// Quita tildes y pasa a minúsculas para comparar.
+String _norm(String s) => s
+    .toLowerCase()
+    .replaceAll('á', 'a')
+    .replaceAll('é', 'e')
+    .replaceAll('í', 'i')
+    .replaceAll('ó', 'o')
+    .replaceAll('ú', 'u')
+    .replaceAll('ñ', 'n');
+
+/// Interpreta una frase dictada para un control médico.
+/// Ej: "Doctor Pérez cardiología el 15 de julio a las 10 de la mañana".
+_VoiceControl _parseVoiceControl(String raw, List<String> specialties) {
+  final low = raw.trim().toLowerCase();
+  final norm = _norm(low);
+
+  String? specialty;
+  for (final esp in specialties) {
+    if (esp == 'Otro') continue;
+    final key = _norm(esp);
+    final stem = key.length > 5 ? key.substring(0, 5) : key;
+    if (norm.contains(key) || norm.contains(stem)) {
+      specialty = esp;
+      break;
+    }
+  }
+
+  return _VoiceControl(
+    doctor: _parseDoctor(low, specialties),
+    specialty: specialty,
+    date: _parseDateEs(norm),
+    time: _parseTimeOfDayEs(low),
+  );
+}
+
+DateTime? _parseDateEs(String norm) {
+  final now = DateTime.now();
+  if (norm.contains('pasado manana')) {
+    return DateTime(now.year, now.month, now.day + 2);
+  }
+  const months = {
+    'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4, 'mayo': 5, 'junio': 6,
+    'julio': 7, 'agosto': 8, 'septiembre': 9, 'setiembre': 9, 'octubre': 10,
+    'noviembre': 11, 'diciembre': 12,
+  };
+  final m =
+      RegExp(r'(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?').firstMatch(norm);
+  if (m != null) {
+    final day = int.tryParse(m.group(1)!);
+    final mon = months[m.group(2)];
+    final year = m.group(3) != null ? int.tryParse(m.group(3)!) : null;
+    if (day != null && mon != null) {
+      final y = year ?? now.year;
+      var d = DateTime(y, mon, day);
+      if (year == null && d.isBefore(DateTime(now.year, now.month, now.day))) {
+        d = DateTime(y + 1, mon, day);
+      }
+      return d;
+    }
+  }
+  if (norm.contains('hoy')) return DateTime(now.year, now.month, now.day);
+  return null;
+}
+
+TimeOfDay? _parseTimeOfDayEs(String text) {
+  final re = RegExp(
+    r'(a\s+la[s]?\s+)?(\d{1,2})(?::(\d{2}))?(\s+y\s+(?:media|cuarto))?\s*'
+    r'(a\.?\s?m\.?|p\.?\s?m\.?|de\s+la\s+mañana|de\s+la\s+manana|de\s+la\s+tarde|de\s+la\s+noche|de\s+la\s+madrugada|mañana|manana|tarde|noche|madrugada)?',
+    caseSensitive: false,
+  );
+  for (final mt in re.allMatches(text)) {
+    final prefix = mt.group(1);
+    final hh = int.tryParse(mt.group(2) ?? '');
+    if (hh == null) continue;
+    final mmStr = mt.group(3);
+    final yQual = mt.group(4);
+    final mer = (mt.group(5) ?? '').toLowerCase();
+    final hasContext =
+        prefix != null || mmStr != null || yQual != null || mer.isNotEmpty;
+    if (!hasContext) continue;
+
+    int h = hh;
+    int min = mmStr != null ? (int.tryParse(mmStr) ?? 0) : 0;
+    if (yQual != null) min = yQual.contains('media') ? 30 : 15;
+
+    final pm = RegExp(r'p\.?\s?m\.?').hasMatch(mer) ||
+        mer.contains('tarde') ||
+        mer.contains('noche');
+    final am = !pm &&
+        (RegExp(r'a\.?\s?m\.?').hasMatch(mer) ||
+            mer.contains('mañana') ||
+            mer.contains('manana') ||
+            mer.contains('madrugada'));
+    if (pm && h < 12) h += 12;
+    if (am && h == 12) h = 0;
+    if (h > 23 || min > 59) continue;
+    return TimeOfDay(hour: h, minute: min);
+  }
+  return null;
+}
+
+String? _parseDoctor(String low, List<String> specialties) {
+  final m = RegExp(
+          r'\b(?:doctora|doctor|dra\.?|dr\.?)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)?)')
+      .firstMatch(low);
+  if (m == null) return null;
+  final stops = {'el', 'la', 'de', 'del', 'a', 'las', 'con', 'para'};
+  final specStems = specialties.where((e) => e != 'Otro').map((e) {
+    final k = _norm(e);
+    return k.length > 5 ? k.substring(0, 5) : k;
+  }).toList();
+  final words = m.group(1)!.split(RegExp(r'\s+')).where((w) {
+    final nw = _norm(w);
+    if (stops.contains(nw)) return false;
+    for (final st in specStems) {
+      if (nw.startsWith(st)) return false;
+    }
+    return true;
+  }).toList();
+  if (words.isEmpty) return null;
+  final name = words
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+  return 'Dr. $name';
 }

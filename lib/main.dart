@@ -22,11 +22,15 @@ void main() async {
   // Inicializamos las notificaciones push (tolerante: no rompe si no hay config)
   await PushService.initialize();
 
+  // Auto-login si el usuario marcó "Recuérdame" y su sesión sigue válida
+  final authProvider = AuthProvider();
+  await authProvider.tryAutoLogin();
+
   runApp(
     // El MultiProvider envuelve toda la app para que los datos fluyan
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => MedicationProvider()),
         ChangeNotifierProvider(create: (_) => ControlsProvider()..load()),
       ],

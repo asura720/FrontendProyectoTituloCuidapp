@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/push_service.dart';
+import '../widgets/app_header.dart';
+import 'terms_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,7 +13,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _notificationsEnabled = true;
+  bool _notificationsEnabled = PushService.notificationsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -27,41 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: const Color(0xFFffffff),
           body: CustomScrollView(
             slivers: [
-              // Header azul
-              SliverAppBar(
-                floating: false,
-                pinned: true,
-                backgroundColor: const Color(0xFF1A56DB),
-                elevation: 0,
-                expandedHeight: 120,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    color: const Color(0xFF1A56DB),
-                    padding: const EdgeInsets.all(20),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'CuidApp',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          'Tu salud en tus manos',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              sectionSliverAppBar('Perfil'),
 
               // Contenido
               SliverToBoxAdapter(
@@ -238,28 +207,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'Recordatorios de medicamentos',
                               Icons.notifications_active,
                               _notificationsEnabled,
-                              (value) {
+                              (value) async {
+                                await PushService.setEnabled(value);
                                 setState(() {
                                   _notificationsEnabled = value;
                                 });
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(value
+                                          ? 'Notificaciones activadas'
+                                          : 'Notificaciones desactivadas'),
+                                    ),
+                                  );
+                                }
                               },
                             ),
                             const Divider(height: 1, indent: 56),
                             _buildConfigItemWithArrow(
-                              'Privacidad y seguridad',
-                              'Gestiona tus datos',
-                              Icons.shield,
-                              () {},
-                            ),
-                            const Divider(height: 1, indent: 56),
-                            _buildConfigItemWithArrow(
-                              'Ayuda y soporte',
-                              'Centro de ayuda',
-                              Icons.help,
-                              () {},
+                              'Términos y Condiciones',
+                              'Política de privacidad y datos',
+                              Icons.description_outlined,
+                              () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const TermsScreen(),
+                                ),
+                              ),
                             ),
                           ],
                         ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Función de cuidador
+                      const Text(
+                        'Función de cuidador',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF030213),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFececf0)),
+                        ),
+                        child: (user.caregiverEnabled || user.role == 'TITULAR')
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.verified_user,
+                                        color: Colors.green[600], size: 22),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Función de cuidador activada',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF030213),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Ya puedes gestionar a tus pacientes desde la pestaña Cuidador.',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : _buildConfigItemWithArrow(
+                                'Activar función de cuidador',
+                                'Para cuidar a otra persona y gestionar sus medicamentos',
+                                Icons.people_outline,
+                                () => _showEnableCaregiverInfo(context, authProvider),
+                              ),
                       ),
                       const SizedBox(height: 24),
 
@@ -287,20 +323,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Icons.vpn_key,
                               () =>
                                   _showChangePasswordDialog(context, authProvider),
-                            ),
-                            const Divider(height: 1, indent: 56),
-                            _buildConfigItemWithArrow(
-                              'Recuperar contraseña',
-                              'Olvidé mi contraseña',
-                              Icons.mail,
-                              () {},
-                            ),
-                            const Divider(height: 1, indent: 56),
-                            _buildConfigItemWithArrow(
-                              'Autenticación de dos factores',
-                              'Seguridad adicional',
-                              Icons.security,
-                              () {},
                             ),
                             const Divider(height: 1, indent: 56),
                             _buildConfigItemWithArrowDangerous(
@@ -705,9 +727,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showChangePasswordDialog(BuildContext context, AuthProvider authProvider) {
     final oldPasswordController = TextEditingController();
+    final codeController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     String errorMessage = '';
+    bool sendingCode = false;
 
     showDialog(
       context: context,
@@ -741,6 +765,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                // Enviar código de seguridad al correo
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: sendingCode
+                        ? null
+                        : () async {
+                            setState(() => sendingCode = true);
+                            final ok = await authProvider.sendActionCode(
+                                authProvider.userEmail, 'cambiar tu contraseña');
+                            if (!context.mounted) return;
+                            setState(() => sendingCode = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok
+                                    ? 'Código enviado a ${authProvider.userEmail}'
+                                    : (authProvider.error ??
+                                        'No se pudo enviar el código')),
+                              ),
+                            );
+                          },
+                    icon: sendingCode
+                        ? const SizedBox(
+                            height: 14,
+                            width: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send_outlined, size: 16),
+                    label: const Text('Enviar código al correo'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Código de verificación',
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: newPasswordController,
                   obscureText: true,
@@ -765,22 +831,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
-                final success = authProvider.changePassword(
+              onPressed: () async {
+                final success = await authProvider.changePassword(
                   oldPasswordController.text,
+                  codeController.text.trim(),
                   newPasswordController.text,
                   confirmPasswordController.text,
                 );
                 if (success) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Contraseña actualizada correctamente'),
-                    ),
-                  );
+                  if (context.mounted) Navigator.pop(context);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Contraseña actualizada correctamente'),
+                      ),
+                    );
+                  }
                 } else {
                   setState(() {
-                    errorMessage = 'Error. Verifica los datos e intenta nuevamente.';
+                    errorMessage = authProvider.error ??
+                        'Error. Verifica los datos e intenta nuevamente.';
                   });
                 }
               },
@@ -829,8 +899,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              authProvider.updateProfile(
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final ok = await authProvider.updateProfile(
                 name: user.name,
                 phone: user.phone,
                 birthDate: user.birthDate,
@@ -838,10 +909,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 emergencyContact: contactController.text,
                 emergencyPhone: phoneController.text,
               );
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Contacto de emergencia actualizado'),
+              if (context.mounted) Navigator.pop(context);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(ok
+                      ? 'Contacto de emergencia actualizado'
+                      : 'No se pudo actualizar el contacto'),
                 ),
               );
             },
@@ -857,7 +930,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     AuthProvider authProvider,
   ) {
     final passwordController = TextEditingController();
+    final codeController = TextEditingController();
     String errorMessage = '';
+    bool sendingCode = false;
 
     showDialog(
       context: context,
@@ -870,7 +945,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 const Text(
                   '⚠️ Esta acción es permanente e irreversible. '
-                  'Se eliminarán todos tus datos.',
+                  'Se eliminarán todos tus datos. Confirma con tu contraseña '
+                  'y el código que enviaremos a tu correo.',
                   style: TextStyle(color: Color(0xFFd4183d)),
                 ),
                 const SizedBox(height: 16),
@@ -895,6 +971,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     labelText: 'Confirma tu contraseña',
                   ),
                 ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: sendingCode
+                        ? null
+                        : () async {
+                            setState(() => sendingCode = true);
+                            final ok = await authProvider.sendActionCode(
+                                authProvider.userEmail, 'eliminar tu cuenta');
+                            if (!context.mounted) return;
+                            setState(() => sendingCode = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok
+                                    ? 'Código enviado a ${authProvider.userEmail}'
+                                    : (authProvider.error ??
+                                        'No se pudo enviar el código')),
+                              ),
+                            );
+                          },
+                    icon: sendingCode
+                        ? const SizedBox(
+                            height: 14,
+                            width: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send_outlined, size: 16),
+                    label: const Text('Enviar código al correo'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Código de verificación',
+                    counterText: '',
+                  ),
+                ),
               ],
             ),
           ),
@@ -904,17 +1021,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () {
-                final success =
-                    authProvider.deleteAccount(passwordController.text);
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final success = await authProvider.deleteAccount(
+                    passwordController.text, codeController.text.trim());
                 if (success) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  // logout() ya limpió la sesión; la app vuelve a Login sola
+                  if (context.mounted) Navigator.pop(context);
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('Cuenta eliminada')),
                   );
                 } else {
                   setState(() {
-                    errorMessage = 'Contraseña incorrecta';
+                    errorMessage = authProvider.error ?? 'Contraseña incorrecta';
                   });
                 }
               },
@@ -922,6 +1041,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 backgroundColor: const Color(0xFFd4183d),
               ),
               child: const Text('Eliminar Cuenta'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Paso 1: popup que explica para qué sirve la función de cuidador.
+  void _showEnableCaregiverInfo(BuildContext context, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.people_alt_outlined,
+            color: Color(0xFF1A56DB), size: 40),
+        title: const Text('Función de cuidador'),
+        content: const Text(
+          'Esta función te permite cuidar a otra persona (por ejemplo un adulto '
+          'mayor o familiar): podrás crear su cuenta, gestionar sus medicamentos '
+          'y horarios, y recibir sus alertas de emergencia (SOS) y avisos de '
+          'medicamentos no tomados.\n\n'
+          'Para activarla te enviaremos un código de verificación a tu correo.',
+          textAlign: TextAlign.left,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A56DB)),
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final ok = await authProvider.sendActionCode(
+                  authProvider.userEmail, 'activar la función de cuidador');
+              if (ctx.mounted) Navigator.pop(ctx);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(ok
+                      ? 'Código enviado a ${authProvider.userEmail}'
+                      : (authProvider.error ?? 'No se pudo enviar el código')),
+                ),
+              );
+              if (ok && context.mounted) {
+                _showEnableCaregiverCode(context, authProvider);
+              }
+            },
+            child: const Text('Enviar código',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Paso 2: ingresar el código para activar.
+  void _showEnableCaregiverCode(BuildContext context, AuthProvider authProvider) {
+    final codeController = TextEditingController();
+    String errorMessage = '';
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Activar función de cuidador'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ingresa el código que enviamos a ${authProvider.userEmail}',
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              if (errorMessage.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(errorMessage,
+                      style: const TextStyle(color: Color(0xFFd4183d))),
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                decoration: const InputDecoration(
+                  labelText: 'Código de verificación',
+                  counterText: '',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A56DB)),
+              onPressed: () async {
+                final ok =
+                    await authProvider.enableCaregiver(codeController.text.trim());
+                if (ok) {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('¡Función de cuidador activada!'),
+                        backgroundColor: Color(0xFF10B981),
+                      ),
+                    );
+                  }
+                } else {
+                  setLocal(() => errorMessage =
+                      authProvider.error ?? 'Código incorrecto o vencido');
+                }
+              },
+              child: const Text('Activar',
+                  style: TextStyle(color: Colors.white)),
             ),
           ],
         ),

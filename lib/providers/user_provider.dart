@@ -11,6 +11,7 @@ class User {
   String emergencyContact;
   String emergencyPhone;
   String role;
+  bool caregiverEnabled;
 
   User({
     required this.id,
@@ -23,6 +24,7 @@ class User {
     this.emergencyContact = '',
     this.emergencyPhone = '',
     this.role = 'INDEPENDIENTE',
+    this.caregiverEnabled = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -47,6 +49,7 @@ class User {
       emergencyContact: json['emergencyContact'] ?? '',
       emergencyPhone: json['emergencyPhone'] ?? '',
       role: json['role'] ?? 'INDEPENDIENTE',
+      caregiverEnabled: json['caregiverEnabled'] ?? false,
     );
   }
 

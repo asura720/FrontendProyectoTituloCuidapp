@@ -20,16 +20,6 @@ class MainNavScreen extends StatefulWidget {
 class _MainNavScreenState extends State<MainNavScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const MedicationsScreen(),
-    const ControlsScreen(),
-    const MapScreen(),
-    const VinculacionScreen(),
-    const ScannerScreen(),
-    const ProfileScreen(),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -49,15 +39,66 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // La pestaña Cuidador solo aparece si el usuario activó la función
+    // (o si ya es titular con pacientes a cargo).
+    final user = context.watch<AuthProvider>().currentUser;
+    final showCuidador =
+        user?.caregiverEnabled == true || user?.role == 'TITULAR';
+
+    final screens = <Widget>[
+      const HomeScreen(),
+      const MedicationsScreen(),
+      const ControlsScreen(),
+      const MapScreen(),
+      if (showCuidador) const VinculacionScreen(),
+      const ScannerScreen(),
+      const ProfileScreen(),
+    ];
+
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        label: 'Inicio',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.medication_outlined),
+        label: 'Medicinas',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.assignment_outlined),
+        label: 'Controles',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.map_outlined),
+        label: 'Cerca',
+      ),
+      if (showCuidador)
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.people_outline),
+          label: 'Cuidador',
+        ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.camera_alt_outlined),
+        label: 'Escáner',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person_outline),
+        label: 'Perfil',
+      ),
+    ];
+
+    // Evitar índice fuera de rango si la lista cambió de tamaño
+    final index = _selectedIndex.clamp(0, screens.length - 1);
+
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: screens[index],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF1A56DB),
         unselectedItemColor: Colors.grey[400],
         backgroundColor: Colors.white,
         elevation: 12,
-        currentIndex: _selectedIndex,
+        currentIndex: index,
         onTap: _onItemTapped,
         selectedLabelStyle: const TextStyle(
           fontSize: 11,
@@ -67,36 +108,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medication_outlined),
-            label: 'Medicinas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_outlined),
-            label: 'Controles',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            label: 'Cerca',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            label: 'Cuidador',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.camera_alt_outlined),
-            label: 'Escáner',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Perfil',
-          ),
-        ],
+        items: items,
       ),
     );
   }

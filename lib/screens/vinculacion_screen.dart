@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/vinculacion_service.dart';
+import '../widgets/app_header.dart';
 import 'patient_medications_screen.dart';
 
 class VinculacionScreen extends StatefulWidget {
@@ -102,12 +103,9 @@ class _VinculacionScreenState extends State<VinculacionScreen> {
     final role = auth.currentUser?.role ?? 'INDEPENDIENTE';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vinculación'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _cargarDatos),
-        ],
-      ),
+      appBar: gradientAppBar('Cuidador', actions: [
+        IconButton(icon: const Icon(Icons.refresh), onPressed: _cargarDatos),
+      ]),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

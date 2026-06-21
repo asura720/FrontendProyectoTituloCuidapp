@@ -6,9 +6,14 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Requerido para notificaciones push en Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Requerido para el dictado por voz (speech-to-text) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Requerido para agregar/editar/borrar controles en el calendario -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     
     <application
-        android:label="frontend_proyecto_titulo"
+        android:label="CuidApp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
@@ -54,6 +59,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Para el dictado por voz (speech_to_text) -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

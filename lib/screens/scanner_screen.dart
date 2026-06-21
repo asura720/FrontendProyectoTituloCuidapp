@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'dart:typed_data';
 import '../services/catalog_service.dart';
+import '../widgets/app_header.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -14,82 +12,68 @@ class ScannerScreen extends StatefulWidget {
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen> {
-  late MobileScannerController _scannerController;
-  bool _isScanning = true;
+class _ScannerScreenState extends State<ScannerScreen>
+    with WidgetsBindingObserver {
   bool _isProcessing = false;
-  Uint8List? _latestImage;
-  final List<Map<String, dynamic>> _scannedHistory = [
-    {
-      'barcode': '8714789987654',
-      'name': 'Aspirina 500mg',
-      'date': DateTime.now().subtract(const Duration(days: 1)),
-      'status': 'success',
-      'type': 'barcode',
-    },
-    {
-      'barcode': '8714789987620',
-      'name': 'Ibuprofeno 200mg',
-      'date': DateTime.now().subtract(const Duration(days: 2)),
-      'status': 'success',
-      'type': 'barcode',
-    },
-    {
-      'barcode': '8714789987789',
-      'name': 'Vitamina C 1000mg',
-      'date': DateTime.now().subtract(const Duration(days: 3)),
-      'status': 'success',
-      'type': 'barcode',
-    },
-  ];
+  CameraController? _camera;
+  bool _cameraReady = false;
+  String? _cameraError;
+  final List<Map<String, dynamic>> _scannedHistory = [];
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController(
-      formats: [
-        BarcodeFormat.all, // Soporta todos los formatos: QR, EAN, CODE128, etc.
-      ],
-      facing: CameraFacing.back,
-      torchEnabled: false,
-      returnImage: true,
-    );
+    WidgetsBinding.instance.addObserver(this);
+    _initCamera();
   }
 
   @override
   void dispose() {
-    _scannerController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _camera?.dispose();
     super.dispose();
   }
 
-  void _handleDetect(BarcodeCapture capture) {
-    _latestImage = capture.image;
-
-    final List<Barcode> barcodes = capture.barcodes;
-
-    if (barcodes.isNotEmpty && _isScanning && !_isProcessing) {
-      final scannedValue = barcodes.first.rawValue ?? '';
-
-      setState(() {
-        _isScanning = false;
-        _isProcessing = true;
-      });
-      _scannerController.stop();
-
-      _lookupBarcodeAndShow(scannedValue);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final cam = _camera;
+    if (cam == null || !cam.value.isInitialized) return;
+    if (state == AppLifecycleState.inactive) {
+      cam.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
     }
   }
 
-  /// Consulta el catálogo del backend por código de barras y muestra el resultado.
-  Future<void> _lookupBarcodeAndShow(String code) async {
-    Map<String, dynamic>? med;
+  Future<void> _initCamera() async {
     try {
-      med = await CatalogService.findByBarcode(code);
-    } catch (_) {
-      med = null;
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        setState(() => _cameraError = 'No se encontró cámara');
+        return;
+      }
+      final back = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      final controller = CameraController(
+        back,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+      await controller.initialize();
+      if (!mounted) {
+        controller.dispose();
+        return;
+      }
+      setState(() {
+        _camera = controller;
+        _cameraReady = true;
+        _cameraError = null;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _cameraError = 'No se pudo abrir la cámara: $e');
     }
-    if (!mounted) return;
-    _showScanResult(code, 'barcode', med);
   }
 
   /// Busca en el catálogo por las palabras del texto OCR y muestra el resultado.
@@ -119,59 +103,81 @@ class _ScannerScreenState extends State<ScannerScreen> {
     _showScanResult(shown, 'ocr', med);
   }
 
+  /// Captura un cuadro de la cámara en vivo, reconoce el texto (OCR) y busca.
   Future<void> _performOCR() async {
-    if (_isProcessing || !_scannerController.isStarting) return;
-
-    setState(() {
-      _isProcessing = true;
-      _isScanning = false;
-    });
-    _scannerController.stop();
-
+    final cam = _camera;
+    if (_isProcessing || cam == null || !cam.value.isInitialized) return;
+    setState(() => _isProcessing = true);
     try {
-      // 1. Obtener la última imagen capturada por la cámara
-      final imageBytes = _latestImage;
+      final XFile photo = await cam.takePicture();
 
-      if (imageBytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Buscando enfoque... Apunta a la caja e intenta de nuevo.')),
-        );
-        _resumeScanning();
-        return;
-      }
-
-      // 2. Guardar la imagen en un archivo temporal
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/ocr_image.png');
-      await tempFile.writeAsBytes(imageBytes);
-
-      // 3. Crear InputImage desde la ruta del archivo
-      final inputImage = InputImage.fromFilePath(tempFile.path);
-
-      // 4. Procesar la imagen con el TextRecognizer
-      final textRecognizer = TextRecognizer(
-        script: TextRecognitionScript.latin,
-      );
-      final RecognizedText recognizedText = await textRecognizer.processImage(
-        inputImage,
-      );
+      final inputImage = InputImage.fromFilePath(photo.path);
+      final textRecognizer =
+          TextRecognizer(script: TextRecognitionScript.latin);
+      final RecognizedText recognizedText =
+          await textRecognizer.processImage(inputImage);
       await textRecognizer.close();
 
-      // 5. Limpiar el archivo temporal
-      await tempFile.delete();
-
-      // 6. Buscar el medicamento en el catálogo del backend usando el texto OCR
+      if (recognizedText.text.trim().isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'No se detectó texto. Acerca la cámara al nombre del medicamento.')),
+        );
+        return;
+      }
       await _lookupOcrAndShow(recognizedText.text);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error en OCR: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error en OCR: $e'), backgroundColor: Colors.red),
       );
-      _resumeScanning();
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  /// Bloque visual para "Para qué sirve" / "Efectos secundarios".
+  Widget _infoBlock(
+    IconData icon,
+    String title,
+    String text,
+    Color color,
+    Color bg,
+  ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF374151), height: 1.4),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showScanResult(
@@ -190,6 +196,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
         'type': detectionType,
         'dosage': med['dosage']?.toString() ?? '',
         'form': med['form']?.toString() ?? '',
+        'uso': med['uso']?.toString() ?? '',
+        'efectos': med['efectosSecundarios']?.toString() ?? '',
       };
     }
 
@@ -457,6 +465,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     ],
                   ),
                 ),
+                if ((foundItem['uso'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _infoBlock(
+                    Icons.healing_outlined,
+                    'Para qué sirve',
+                    foundItem['uso'],
+                    const Color(0xFF1A56DB),
+                    const Color(0xFFEFF4FF),
+                  ),
+                ],
+                if ((foundItem['efectos'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _infoBlock(
+                    Icons.warning_amber_rounded,
+                    'Efectos secundarios',
+                    foundItem['efectos'],
+                    const Color(0xFFB45309),
+                    const Color(0xFFFEF3C7),
+                  ),
+                ],
                 const SizedBox(height: 20),
               ],
               Row(
@@ -539,10 +567,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
   void _resumeScanning() {
     if (mounted) {
       setState(() {
-        _isScanning = true;
         _isProcessing = false;
       });
-      _scannerController.start();
     }
   }
 
@@ -551,121 +577,82 @@ class _ScannerScreenState extends State<ScannerScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Header
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            backgroundColor: const Color(0xFF1A56DB),
-            elevation: 4,
-            expandedHeight: 160,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF1A56DB), Color(0xFF2563EB)],
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Escáner Avanzado',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        DateFormat(
-                          'd \'de\' MMMM yyyy',
-                          'es_ES',
-                        ).format(DateTime.now()),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          sectionSliverAppBar('Escáner'),
 
           // Scanner View
           SliverToBoxAdapter(
             child: Column(
               children: [
+                // Vista de cámara en vivo
                 Container(
                   height: 300,
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
+                    color: Colors.black,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF1A56DB),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1A56DB).withValues(alpha: 0.2),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    border: Border.all(color: const Color(0xFF1A56DB), width: 2),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: MobileScanner(
-                          controller: _scannerController,
-                          onDetect: _handleDetect,
-                          errorBuilder: (context, error, child) {
-                            return Container(
-                              color: Colors.black,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.camera_alt_outlined,
-                                      color: Colors.white70,
-                                      size: 64,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Error de cámara:\n${error.errorCode.name}',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                      if (_cameraReady && _camera != null)
+                        FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _camera!.value.previewSize?.height ?? 1,
+                            height: _camera!.value.previewSize?.width ?? 1,
+                            child: CameraPreview(_camera!),
+                          ),
+                        )
+                      else
+                        Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CircularProgressIndicator(
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(Colors.white)),
+                              const SizedBox(height: 12),
+                              Text(
+                                _cameraError ?? 'Abriendo cámara...',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.white70),
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                      // Reticula de enfoque
-                      Center(
-                        child: Container(
-                          width: 250,
-                          height: 250,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white, width: 2),
-                            borderRadius: BorderRadius.circular(12),
+                            ],
                           ),
                         ),
-                      ),
+                      // Marco guía para encuadrar el nombre
+                      if (_cameraReady)
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 24),
+                            height: 90,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.white, width: 2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      if (_isProcessing)
+                        Container(
+                          color: Colors.black54,
+                          child: const Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white)),
+                                SizedBox(height: 12),
+                                Text('Leyendo el nombre...',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -693,7 +680,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Escanea códigos de barras o QR',
+                                    'Encuadra el nombre dentro del marco y captura',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -702,7 +689,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
-                                    'Soporta: QR, EAN, CODE128, DataMatrix',
+                                    'Leemos el nombre del medicamento y su información',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFFB45309),
@@ -715,24 +702,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
+                      // Botón para escanear el NOMBRE de la caja (OCR)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: _isProcessing ? null : _performOCR,
-                        icon: const Icon(Icons.text_fields),
-                        label: const Text(
-                          'Leer Texto de la Caja (OCR)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          onPressed: _isProcessing ? null : _performOCR,
+                          icon: const Icon(Icons.camera_alt,
+                              color: Colors.white),
+                          label: const Text(
+                            'Capturar y escanear',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'forgot_password_screen.dart';
+import 'verify_email_screen.dart';
+import 'terms_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _rememberMe = false;
+  bool _acceptedTerms = false;
   String? _errorMessage;
 
   @override
@@ -58,13 +61,27 @@ class _LoginScreenState extends State<LoginScreen> {
     final success = await authProvider.login(
       _emailController.text.trim(),
       _passwordController.text,
+      rememberMe: _rememberMe,
     );
 
     if (!mounted) return;
 
     if (!success) {
+      // Si la cuenta existe pero no está verificada, vamos a verificar el correo
+      if (authProvider.requiresVerification) {
+        setState(() => _isLoading = false);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => VerifyEmailScreen(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            ),
+          ),
+        );
+        return;
+      }
       setState(() {
-        _errorMessage = 'Email o contraseña incorrectos';
+        _errorMessage = authProvider.error ?? 'Email o contraseña incorrectos';
         _isLoading = false;
       });
     }
@@ -74,6 +91,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_passwordController.text.length < 4) {
       setState(() {
         _errorMessage = 'La contraseña debe tener al menos 4 caracteres';
+      });
+      return;
+    }
+    if (!_acceptedTerms) {
+      setState(() {
+        _errorMessage =
+            'Debes aceptar los Términos y Condiciones para registrarte';
       });
       return;
     }
@@ -98,24 +122,17 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
 
-      // Confirmación visual de que el registro fue exitoso
-      await _showRegistrationSuccessDialog();
-
       if (!mounted) return;
 
-      final loginSuccess = await authProvider.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+      // La cuenta requiere verificación por correo antes de poder entrar.
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => VerifyEmailScreen(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          ),
+        ),
       );
-      if (loginSuccess) {
-        // El token ya quedó registrado durante el login; pedimos el push de bienvenida
-        await authProvider.sendWelcomePush();
-      } else {
-        setState(() {
-          _errorMessage = 'Registro exitoso pero error al iniciar sesión';
-          _isLoading = false;
-        });
-      }
     } else {
       setState(() {
         // Mostramos el motivo real devuelto por el backend/validación
@@ -124,95 +141,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  Future<void> _showRegistrationSuccessDialog() async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE8F5E9),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    size: 48,
-                    color: Color(0xFF2E7D32),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  '¡Registro exitoso!',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.notifications_active_outlined,
-                      size: 18,
-                      color: Color(0xFF1A56DB),
-                    ),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Tu cuenta fue creada correctamente. ¡Bienvenido a CuidApp!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A56DB),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: const Text(
-                      'Continuar',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _toggleMode() {
@@ -224,6 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _passwordController.clear();
       _confirmPasswordController.clear();
       _rememberMe = false;
+      _acceptedTerms = false;
     });
   }
 
@@ -433,6 +362,49 @@ class _LoginScreenState extends State<LoginScreen> {
                               vertical: 14,
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Aceptación de Términos y Condiciones (obligatorio)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Checkbox(
+                              value: _acceptedTerms,
+                              onChanged: (v) =>
+                                  setState(() => _acceptedTerms = v ?? false),
+                              activeColor: const Color(0xFF1A56DB),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Wrap(
+                                  children: [
+                                    const Text(
+                                      'He leído y acepto los ',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Color(0xFF1A1A1A)),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const TermsScreen(),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Términos y Condiciones y Política de Privacidad',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF1A56DB),
+                                          fontWeight: FontWeight.w600,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                       ] else ...[

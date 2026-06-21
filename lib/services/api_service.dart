@@ -2,11 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  // URL del backend. Se puede sobrescribir al compilar sin tocar el código:
-  //   flutter build apk --dart-define=API_BASE_URL=http://TU_IP:8083
+  // URL del backend. Por defecto apunta al servidor en Azure, así cualquier
+  // `flutter build apk` ya sale conectado a producción. Para usar otro backend
+  // (ej. local) se puede sobrescribir al compilar sin tocar el código:
+  //   flutter build apk --dart-define=API_BASE_URL=http://localhost:8083
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8083',
+    defaultValue: 'http://20.119.249.151:8083',
   );
   static const _storage = FlutterSecureStorage();
   static Dio? _dio;

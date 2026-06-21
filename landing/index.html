@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuidApp — Tu salud en tus manos</title>
+<style>
+  :root{
+    --azul:#1A56DB; --azul2:#1E40AF; --verde:#10B981;
+    --dark:#0B1220; --muted:#6B7280; --bg:#F5F7FB;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;
+    color:var(--dark); background:var(--bg); line-height:1.6;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+  a{color:inherit;text-decoration:none}
+
+  /* HERO */
+  header{
+    background:linear-gradient(135deg,var(--azul),var(--azul2));
+    color:#fff; padding:70px 0 90px; position:relative; overflow:hidden;
+  }
+  header::after{
+    content:""; position:absolute; bottom:-1px; left:0; right:0; height:60px;
+    background:var(--bg); border-radius:50% 50% 0 0/100% 100% 0 0;
+  }
+  .hero{display:flex;align-items:center;gap:50px;flex-wrap:wrap;justify-content:center;position:relative;z-index:2}
+  .hero-text{flex:1;min-width:300px}
+  .logo-row{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .logo{width:74px;height:74px;border-radius:20px;background:#fff;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+  .logo svg{width:44px;height:44px}
+  h1{font-size:54px;font-weight:800;letter-spacing:.5px}
+  .tagline{font-size:20px;opacity:.9;margin-top:6px;font-weight:500}
+  .pitch{font-size:17px;opacity:.92;margin:22px 0 28px;max-width:520px}
+
+  .badges{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .gp-badge{
+    display:inline-flex;align-items:center;gap:12px;background:#000;color:#fff;
+    padding:12px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
+  }
+  .gp-badge .tri{width:26px;height:28px}
+  .gp-badge small{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.85}
+  .gp-badge b{font-size:19px;font-weight:700;line-height:1}
+  .soon{background:rgba(255,255,255,.18);border:1px dashed rgba(255,255,255,.6);
+    padding:10px 16px;border-radius:30px;font-weight:600;font-size:14px}
+
+  /* PHONE MOCK */
+  .phone{
+    width:260px;height:530px;background:#0B1220;border-radius:40px;padding:14px;
+    box-shadow:0 30px 60px rgba(0,0,0,.35);flex-shrink:0;position:relative;
+  }
+  .phone .screen{width:100%;height:100%;border-radius:28px;overflow:hidden;
+    background:linear-gradient(160deg,var(--azul),var(--azul2));color:#fff;
+    display:flex;flex-direction:column}
+  .phone .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    width:120px;height:22px;background:#0B1220;border-radius:0 0 16px 16px;z-index:3}
+  .scr-top{padding:46px 20px 16px;font-weight:800;font-size:22px}
+  .scr-card{background:rgba(255,255,255,.15);margin:8px 16px;padding:14px;border-radius:14px;font-size:13px}
+  .scr-card .t{font-size:11px;opacity:.85}
+  .scr-card .v{font-size:22px;font-weight:800;margin-top:2px}
+  .scr-list{background:#fff;color:#0B1220;margin:14px 0 0;flex:1;border-radius:22px 22px 0 0;padding:16px}
+  .scr-pill{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:#F5F7FB;margin-bottom:10px}
+  .scr-dot{width:34px;height:34px;border-radius:9px;background:#E8EEFB;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .scr-pill small{color:var(--muted);font-size:11px}
+
+  /* SECTIONS */
+  section{padding:64px 0}
+  .sec-title{text-align:center;font-size:32px;font-weight:800;margin-bottom:10px}
+  .sec-sub{text-align:center;color:var(--muted);margin-bottom:44px;font-size:16px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px}
+  .card{background:#fff;border-radius:18px;padding:26px;box-shadow:0 6px 24px rgba(16,24,40,.06);
+    border:1px solid #EEF1F6;transition:transform .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(26,86,219,.14)}
+  .card .ico{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--azul),var(--azul2));
+    display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:16px}
+  .card h3{font-size:18px;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:14px}
+
+  .band{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff}
+  .band .grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .stat{text-align:center}
+  .stat b{font-size:40px;font-weight:800;display:block}
+  .stat span{opacity:.9}
+
+  .team{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px}
+  .member{background:#fff;border-radius:18px;padding:28px;text-align:center;border:1px solid #EEF1F6}
+  .avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;
+    background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800}
+  .member b{font-size:17px}
+  .member span{color:var(--muted);font-size:13px;display:block;margin-top:4px}
+
+  .legal{background:#fff;border-radius:18px;padding:26px;border:1px solid #EEF1F6;
+    display:flex;gap:16px;align-items:flex-start;max-width:760px;margin:0 auto}
+  .legal .ico{font-size:30px}
+
+  footer{background:var(--dark);color:#fff;text-align:center;padding:40px 0;margin-top:20px}
+  footer .logo{width:54px;height:54px;border-radius:14px}
+  footer .logo svg{width:30px;height:30px}
+  footer p{opacity:.7;font-size:13px;margin-top:12px}
+
+  @media(max-width:720px){ h1{font-size:42px} .hero{gap:30px} }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header>
+  <div class="wrap hero">
+    <div class="hero-text">
+      <div class="logo-row">
+        <div class="logo">
+          <!-- Logo CuidApp: cruz médica -->
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="42" y="20" width="16" height="60" rx="4" fill="#1A56DB"/>
+            <rect x="20" y="42" width="60" height="16" rx="4" fill="#1A56DB"/>
+          </svg>
+        </div>
+        <div>
+          <h1>CuidApp</h1>
+        </div>
+      </div>
+      <div class="tagline">Tu salud en tus manos 💙</div>
+      <p class="pitch">
+        La app que ayuda a adultos mayores y a sus cuidadores a no olvidar ningún
+        medicamento. Recordatorios, control de dosis, alertas de emergencia y
+        vínculo paciente–cuidador, todo en un solo lugar.
+      </p>
+      <div class="badges">
+        <div class="gp-badge">
+          <svg class="tri" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <path d="M48 32 L300 256 L48 480 Z" fill="#34A853"/>
+            <path d="M48 32 L300 256 L380 176 Z" fill="#FBBC04"/>
+            <path d="M48 480 L300 256 L380 336 Z" fill="#EA4335"/>
+            <path d="M380 176 L300 256 L380 336 L470 256 Z" fill="#4285F4"/>
+          </svg>
+          <div>
+            <small>Próximamente en</small>
+            <b>Google Play</b>
+          </div>
+        </div>
+        <div class="soon">🚀 Lanzamiento 2026</div>
+      </div>
+    </div>
+
+    <!-- Mockup de teléfono -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="scr-top">Inicio</div>
+        <div class="scr-card">
+          <div class="t">Recordatorios pendientes hoy</div>
+          <div class="v">2 de 3 tomados</div>
+        </div>
+        <div class="scr-list">
+          <div class="scr-pill">
+            <div class="scr-dot">💊</div>
+            <div><b>Losartán 50mg</b><br><small>Próxima dosis: 14:00</small></div>
+          </div>
+          <div class="scr-pill">
+            <div class="scr-dot">💊</div>
+            <div><b>Metformina 850mg</b><br><small>Tomado ✓ 08:05</small></div>
+          </div>
+          <div class="scr-pill">
+            <div class="scr-dot">🩺</div>
+            <div><b>Control cardiología</b><br><small>En 3 días</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- FEATURES -->
+<section>
+  <div class="wrap">
+    <h2 class="sec-title">Todo para no olvidar tu tratamiento</h2>
+    <p class="sec-sub">Pensada para ser simple, clara y accesible para adultos mayores.</p>
+    <div class="grid">
+      <div class="card"><div class="ico">⏰</div><h3>Recordatorios inteligentes</h3>
+        <p>Avisos por cada dosis y por días de la semana. Si no la marcas a tiempo, alerta al instante.</p></div>
+      <div class="card"><div class="ico">💊</div><h3>Control por dosis</h3>
+        <p>Cada medicamento con sus horarios. Marca "Tomar ahora" y registra tu cumplimiento diario.</p></div>
+      <div class="card"><div class="ico">🆘</div><h3>Botón de emergencia (SOS)</h3>
+        <p>El paciente pulsa SOS y su cuidador recibe una alerta con vibración al instante.</p></div>
+      <div class="card"><div class="ico">👥</div><h3>Vínculo paciente–cuidador</h3>
+        <p>El cuidador gestiona los medicamentos de su familiar y recibe sus avisos y emergencias.</p></div>
+      <div class="card"><div class="ico">📷</div><h3>Escáner con OCR</h3>
+        <p>Apunta a la caja: lee el nombre y muestra para qué sirve y sus efectos secundarios.</p></div>
+      <div class="card"><div class="ico">🗺️</div><h3>Farmacias y centros cerca</h3>
+        <p>Encuentra farmacias y centros médicos cercanos con el mapa integrado.</p></div>
+      <div class="card"><div class="ico">📅</div><h3>Controles médicos</h3>
+        <p>Agenda tus próximas consultas por especialidad y recibe recordatorios.</p></div>
+      <div class="card"><div class="ico">🔒</div><h3>Cuenta segura</h3>
+        <p>Verificación por correo, contraseñas cifradas y código para acciones sensibles.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BAND -->
+<section class="band">
+  <div class="wrap">
+    <div class="grid">
+      <div class="stat"><b>3</b><span>formas de cargar medicamentos<br>(voz, escáner, manual)</span></div>
+      <div class="stat"><b>24/7</b><span>recordatorios y alertas<br>siempre activas</span></div>
+      <div class="stat"><b>+70</b><span>medicamentos en catálogo<br>+ búsqueda en línea</span></div>
+      <div class="stat"><b>0$</b><span>gratis para el<br>usuario</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH / LEGAL -->
+<section>
+  <div class="wrap">
+    <h2 class="sec-title">Tecnología y privacidad</h2>
+    <p class="sec-sub">Construida con tecnología moderna y respetando tus datos.</p>
+    <div class="legal">
+      <div class="ico">🛡️</div>
+      <div>
+        <h3>Protección de datos</h3>
+        <p style="color:var(--muted);margin-top:6px">
+          CuidApp trata tus datos conforme a la legislación chilena de protección de
+          datos personales (<b>Ley N° 19.628</b> y <b>Ley N° 21.719</b>). Los datos de
+          salud son sensibles: se usan solo para prestarte el servicio, con tu
+          consentimiento, y nunca se venden a terceros.
+        </p>
+        <p style="margin-top:10px;font-size:13px;color:var(--muted)">
+          Flutter · Spring Boot (microservicios) · MySQL · Firebase Cloud Messaging · Google Maps · Docker · Azure
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section style="background:#fff">
+  <div class="wrap">
+    <h2 class="sec-title">Nuestro equipo</h2>
+    <p class="sec-sub">Proyecto de Título — DuocUC</p>
+    <div class="team">
+      <div class="member"><div class="avatar">MS</div><b>Matías Samaniego</b>
+        <span>Líder de proyecto · Full-Stack</span></div>
+      <div class="member"><div class="avatar">FG</div><b>Francisco Gómez</b>
+        <span>Desarrollo Backend</span></div>
+      <div class="member"><div class="avatar">RD</div><b>Ricardo Díaz</b>
+        <span>Desarrollo Frontend</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="logo" style="margin:0 auto;background:#fff;display:flex;align-items:center;justify-content:center">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="42" y="20" width="16" height="60" rx="4" fill="#1A56DB"/>
+        <rect x="20" y="42" width="60" height="16" rx="4" fill="#1A56DB"/>
+      </svg>
+    </div>
+    <h3 style="margin-top:14px">CuidApp</h3>
+    <p>Tu salud en tus manos · Próximamente en Google Play Store</p>
+    <p>© 2026 CuidApp — Proyecto de Título DuocUC. Todos los derechos reservados.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -26,9 +26,30 @@ class MedicationProvider extends ChangeNotifier {
   Future<void> addMedication(Medication med) async {
     try {
       final data = await MedicationService.createMedication(med.toJson());
-      _medications.add(Medication.fromJson(data));
+      final created = Medication.fromJson(data);
+      _medications.add(created);
       notifyListeners();
+      // Si el medicamento corresponde hoy, marca como tomadas las dosis
+      // cuyo horario ya pasó (así no alertan apenas se agrega).
+      await _autoMarkPastDoses(created);
     } catch (_) {}
+  }
+
+  /// Marca como tomadas las dosis de hoy cuyo horario ya pasó.
+  Future<void> _autoMarkPastDoses(Medication med) async {
+    if (!med.isScheduledToday()) return;
+    final now = DateTime.now();
+    final nowMinutes = now.hour * 60 + now.minute;
+    for (final t in med.times) {
+      final parts = t.split(':');
+      if (parts.length != 2) continue;
+      final h = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      if (h == null || m == null) continue;
+      if (h * 60 + m <= nowMinutes && !med.isDoseTakenToday(t)) {
+        await markDose(med.id, t);
+      }
+    }
   }
 
   Future<void> editMedication(String id, Medication newMed) async {
@@ -53,6 +74,18 @@ class MedicationProvider extends ChangeNotifier {
   Future<void> toggleMedicationTaken(String id) async {
     try {
       final data = await MedicationService.toggleMedication(id);
+      final index = _medications.indexWhere((m) => m.id == id);
+      if (index >= 0) {
+        _medications[index] = Medication.fromJson(data);
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  /// Marca/desmarca una dosis puntual de hoy por horario ("HH:mm").
+  Future<void> markDose(String id, String time, {bool taken = true}) async {
+    try {
+      final data = await MedicationService.markDose(id, time, taken: taken);
       final index = _medications.indexWhere((m) => m.id == id);
       if (index >= 0) {
         _medications[index] = Medication.fromJson(data);

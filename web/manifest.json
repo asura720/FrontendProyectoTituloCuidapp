@@ -1,11 +1,11 @@
 {
-    "name": "frontend_proyecto_titulo",
-    "short_name": "frontend_proyecto_titulo",
+    "name": "CuidApp",
+    "short_name": "CuidApp",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1A56DB",
+    "theme_color": "#1A56DB",
+    "description": "CuidApp — Tu salud en tus manos",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -4,9 +4,25 @@ import 'package:intl/intl.dart';
 import '../providers/medication_provider.dart';
 import '../providers/controls_provider.dart';
 import '../widgets/sos_button.dart';
+import '../widgets/app_header.dart';
+import '../utils/health_tips.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Consejo elegido al entrar a la pestaña (cambia cada vez que se abre)
+  late String _consejo;
+
+  @override
+  void initState() {
+    super.initState();
+    _consejo = randomHealthTip();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,52 +30,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFffffff),
       body: CustomScrollView(
         slivers: [
-          // Header personalizado
-          SliverAppBar(
-            floating: false,
-            pinned: true,
-            backgroundColor: const Color(0xFF1A56DB),
-            elevation: 8,
-            expandedHeight: 220,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF1A56DB), Color(0xFF1E40AF)],
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'CuidApp',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Tu salud en tus manos',
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          sectionSliverAppBar('Inicio'),
           // Contenido principal
           SliverToBoxAdapter(
             child: Padding(
@@ -323,9 +294,9 @@ class HomeScreen extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  const Text(
-                                    'Recuerda tomar tus medicamentos con agua y mantener una alimentación balanceada para mejorar su efectividad.',
-                                    style: TextStyle(
+                                  Text(
+                                    _consejo,
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF717182),
                                     ),

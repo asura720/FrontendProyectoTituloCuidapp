@@ -13,9 +13,12 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   late TextEditingController _emailController;
+  late TextEditingController _codeController;
   late TextEditingController _passwordController;
   late TextEditingController _confirmController;
   bool _isLoading = false;
+  bool _sendingCode = false;
+  bool _codeSent = false;
   bool _done = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
@@ -25,6 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail ?? '');
+    _codeController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmController = TextEditingController();
   }
@@ -32,9 +36,37 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void dispose() {
     _emailController.dispose();
+    _codeController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
+  }
+
+  void _sendCode() async {
+    final email = _emailController.text.trim();
+    if (!_isValidEmail(email)) {
+      setState(() => _errorMessage = 'Ingresa un correo electrónico válido');
+      return;
+    }
+    setState(() {
+      _sendingCode = true;
+      _errorMessage = null;
+    });
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.sendActionCode(email, 'recuperar tu contraseña');
+    if (!mounted) return;
+    setState(() {
+      _sendingCode = false;
+      if (ok) _codeSent = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? 'Si el correo está registrado, te enviamos un código.'
+            : (auth.error ?? 'No se pudo enviar el código')),
+        backgroundColor: ok ? const Color(0xFF10B981) : const Color(0xFFd4183d),
+      ),
+    );
   }
 
   bool _isValidEmail(String email) {
@@ -46,6 +78,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (!_isValidEmail(email)) {
       setState(() => _errorMessage = 'Ingresa un correo electrónico válido');
+      return;
+    }
+    if (_codeController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Ingresa el código enviado a tu correo');
       return;
     }
     if (_passwordController.text.length < 4) {
@@ -64,8 +100,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     final authProvider = context.read<AuthProvider>();
-    final success =
-        await authProvider.resetPassword(email, _passwordController.text);
+    final success = await authProvider.resetPassword(
+        email, _codeController.text.trim(), _passwordController.text);
 
     if (!mounted) return;
 
@@ -175,7 +211,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Ingresa tu correo y la nueva contraseña para restablecer el acceso a tu cuenta.',
+          'Ingresa tu correo, pide el código de verificación y úsalo junto a tu nueva contraseña.',
           style: TextStyle(fontSize: 13, color: Colors.grey),
         ),
         const SizedBox(height: 24),
@@ -200,6 +236,53 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               horizontal: 16,
               vertical: 14,
             ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Botón enviar código
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _sendingCode ? null : _sendCode,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF1A56DB),
+              side: const BorderSide(color: Color(0xFF1A56DB)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: _sendingCode
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_outlined, size: 18),
+            label: Text(_codeSent ? 'Reenviar código' : 'Enviar código',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Código de verificación
+        TextField(
+          controller: _codeController,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: InputDecoration(
+            labelText: 'Código de verificación',
+            prefixIcon: const Icon(Icons.pin_outlined, color: Color(0xFF1A56DB)),
+            counterText: '',
+            filled: true,
+            fillColor: const Color(0xFFF5F7FB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
         ),
         const SizedBox(height: 16),

@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../models/location.dart';
 import '../services/places_service.dart';
+import '../widgets/app_header.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -112,16 +113,13 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cerca de ti'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.my_location),
-            tooltip: 'Recargar',
-            onPressed: _loading ? null : _init,
-          ),
-        ],
-      ),
+      appBar: gradientAppBar('Cerca de ti', actions: [
+        IconButton(
+          icon: const Icon(Icons.my_location),
+          tooltip: 'Recargar',
+          onPressed: _loading ? null : _init,
+        ),
+      ]),
       body: Column(
         children: [
           _buildFilters(),
