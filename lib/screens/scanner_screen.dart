@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../services/catalog_service.dart';
+import '../providers/medication_provider.dart';
+import '../models/medication.dart';
 import '../widgets/app_header.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -353,7 +356,6 @@ class _ScannerScreenState extends State<ScannerScreen>
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF030213),
-                          fontFamily: 'Courier',
                         ),
                       ),
                     ),
@@ -487,6 +489,35 @@ class _ScannerScreenState extends State<ScannerScreen>
                 ],
                 const SizedBox(height: 20),
               ],
+              // Agregar el medicamento escaneado para recordatorios
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_alarm, color: Colors.white),
+                  label: const Text(
+                    'Agregar a mis medicamentos',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showAddMedicationSheet(
+                      (foundItem?['name'] ?? scannedValue).toString(),
+                      (foundItem?['dosage'] ?? '').toString(),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -570,6 +601,177 @@ class _ScannerScreenState extends State<ScannerScreen>
         _isProcessing = false;
       });
     }
+  }
+
+  /// Formulario rápido para agregar el medicamento escaneado a los recordatorios.
+  void _showAddMedicationSheet(String name, String dosage) {
+    final nameCtrl = TextEditingController(text: name.trim());
+    final dosageCtrl = TextEditingController(text: dosage.trim());
+    final List<String> times = ['08:00'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheet) => SafeArea(
+          top: false,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 22,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 22,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text('Agregar medicamento',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1A1A))),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Nombre del medicamento',
+                    prefixIcon: const Icon(Icons.medication_outlined,
+                        color: Color(0xFF1A56DB)),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FB),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: dosageCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Dosis (ej: 50mg)',
+                    prefixIcon: const Icon(Icons.scale_outlined,
+                        color: Color(0xFF1A56DB)),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F7FB),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Horarios',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700])),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ...times.map((t) => Chip(
+                          label: Text(t),
+                          backgroundColor: const Color(0xFFE8EEFB),
+                          labelStyle: const TextStyle(
+                              color: Color(0xFF1A56DB),
+                              fontWeight: FontWeight.w600),
+                          onDeleted: () => setSheet(() => times.remove(t)),
+                          deleteIconColor: const Color(0xFF1A56DB),
+                        )),
+                    ActionChip(
+                      avatar: const Icon(Icons.add,
+                          size: 18, color: Color(0xFF1A56DB)),
+                      label: const Text('Agregar hora'),
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                            context: ctx, initialTime: TimeOfDay.now());
+                        if (picked != null) {
+                          final f =
+                              '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                          if (!times.contains(f)) {
+                            setSheet(() {
+                              times.add(f);
+                              times.sort();
+                            });
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A56DB),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      if (nameCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                              content: Text('Escribe el nombre del medicamento')),
+                        );
+                        return;
+                      }
+                      final med = Medication(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        name: nameCtrl.text.trim(),
+                        dosage: dosageCtrl.text.trim(),
+                        frequency: times.length == 1
+                            ? '1 vez al día'
+                            : '${times.length} veces al día',
+                        times: List<String>.from(times),
+                        containerColor: const Color(0xFFf3f3f5),
+                        iconColor: const Color(0xFF1A56DB),
+                      );
+                      context.read<MedicationProvider>().addMedication(med);
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('"${med.name}" agregado a tus medicamentos'),
+                          backgroundColor: const Color(0xFF10B981),
+                        ),
+                      );
+                    },
+                    child: const Text('Guardar',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override

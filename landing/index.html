@@ -5,268 +5,410 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CuidApp — Tu salud en tus manos</title>
 <style>
-  :root{
-    --azul:#1A56DB; --azul2:#1E40AF; --verde:#10B981;
-    --dark:#0B1220; --muted:#6B7280; --bg:#F5F7FB;
-  }
+  :root{--azul:#1A56DB;--azul2:#1E40AF;--verde:#10B981;--dark:#0B1220;--muted:#6B7280;--bg:#F5F7FB;}
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{
-    font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;
-    color:var(--dark); background:var(--bg); line-height:1.6;
-  }
+  body{font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;color:var(--dark);background:var(--bg);line-height:1.6;overflow-x:hidden}
   .wrap{max-width:1100px;margin:0 auto;padding:0 24px}
   a{color:inherit;text-decoration:none}
 
-  /* HERO */
-  header{
-    background:linear-gradient(135deg,var(--azul),var(--azul2));
-    color:#fff; padding:70px 0 90px; position:relative; overflow:hidden;
-  }
-  header::after{
-    content:""; position:absolute; bottom:-1px; left:0; right:0; height:60px;
-    background:var(--bg); border-radius:50% 50% 0 0/100% 100% 0 0;
-  }
-  .hero{display:flex;align-items:center;gap:50px;flex-wrap:wrap;justify-content:center;position:relative;z-index:2}
-  .hero-text{flex:1;min-width:300px}
-  .logo-row{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-  .logo{width:74px;height:74px;border-radius:20px;background:#fff;
-    display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-  .logo svg{width:44px;height:44px}
-  h1{font-size:54px;font-weight:800;letter-spacing:.5px}
-  .tagline{font-size:20px;opacity:.9;margin-top:6px;font-weight:500}
-  .pitch{font-size:17px;opacity:.92;margin:22px 0 28px;max-width:520px}
+  /* ===== Animaciones base ===== */
+  @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}70%{box-shadow:0 0 0 14px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes blob{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.1)}66%{transform:translate(-20px,20px) scale(.95)}}
 
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.left{transform:translateX(-40px)} .reveal.right{transform:translateX(40px)} .reveal.zoom{transform:scale(.9)}
+  .reveal.visible{opacity:1;transform:none}
+  .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}.reveal.d4{transition-delay:.32s}
+
+  /* ===== HERO ===== */
+  header{background:linear-gradient(120deg,#1A56DB,#1E40AF,#2563EB,#1A56DB);background-size:300% 300%;
+    animation:gradientShift 14s ease infinite;color:#fff;padding:74px 0 110px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:70px;background:var(--bg);border-radius:50% 50% 0 0/100% 100% 0 0}
+  .blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.35;animation:blob 16s ease-in-out infinite}
+  .blob.a{width:260px;height:260px;background:#60A5FA;top:-60px;right:10%}
+  .blob.b{width:200px;height:200px;background:#34D399;bottom:20px;left:5%;animation-duration:20s}
+  .hero{display:flex;align-items:center;gap:50px;flex-wrap:wrap;justify-content:center;position:relative;z-index:2}
+  .hero-text{flex:1;min-width:300px;animation:fadeDown .9s ease both}
+  .logo-row{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .logo{width:78px;height:78px;border-radius:22px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 34px rgba(0,0,0,.25)}
+  .logo svg{width:46px;height:46px}
+  h1{font-size:56px;font-weight:800;letter-spacing:.5px;line-height:1}
+  .tagline{font-size:20px;opacity:.92;margin-top:8px;font-weight:500}
+  .pitch{font-size:17px;opacity:.92;margin:22px 0 28px;max-width:520px}
   .badges{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-  .gp-badge{
-    display:inline-flex;align-items:center;gap:12px;background:#000;color:#fff;
-    padding:12px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.25);
-  }
+  .gp-badge{display:inline-flex;align-items:center;gap:12px;background:#000;color:#fff;padding:12px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.25);transition:transform .2s}
+  .gp-badge:hover{transform:scale(1.05)}
   .gp-badge .tri{width:26px;height:28px}
   .gp-badge small{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.85}
   .gp-badge b{font-size:19px;font-weight:700;line-height:1}
-  .soon{background:rgba(255,255,255,.18);border:1px dashed rgba(255,255,255,.6);
-    padding:10px 16px;border-radius:30px;font-weight:600;font-size:14px}
+  .soon{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.6);padding:10px 16px;border-radius:30px;font-weight:600;font-size:14px;animation:pulse 2.6s infinite}
 
-  /* PHONE MOCK */
-  .phone{
-    width:260px;height:530px;background:#0B1220;border-radius:40px;padding:14px;
-    box-shadow:0 30px 60px rgba(0,0,0,.35);flex-shrink:0;position:relative;
-  }
-  .phone .screen{width:100%;height:100%;border-radius:28px;overflow:hidden;
-    background:linear-gradient(160deg,var(--azul),var(--azul2));color:#fff;
-    display:flex;flex-direction:column}
-  .phone .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);
-    width:120px;height:22px;background:#0B1220;border-radius:0 0 16px 16px;z-index:3}
-  .scr-top{padding:46px 20px 16px;font-weight:800;font-size:22px}
-  .scr-card{background:rgba(255,255,255,.15);margin:8px 16px;padding:14px;border-radius:14px;font-size:13px}
-  .scr-card .t{font-size:11px;opacity:.85}
-  .scr-card .v{font-size:22px;font-weight:800;margin-top:2px}
-  .scr-list{background:#fff;color:#0B1220;margin:14px 0 0;flex:1;border-radius:22px 22px 0 0;padding:16px}
-  .scr-pill{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:#F5F7FB;margin-bottom:10px}
-  .scr-dot{width:34px;height:34px;border-radius:9px;background:#E8EEFB;display:flex;align-items:center;justify-content:center;font-size:18px}
+  /* ===== Teléfono ===== */
+  .phone{width:264px;height:544px;background:#0B1220;border-radius:42px;padding:14px;box-shadow:0 34px 70px rgba(0,0,0,.4);flex-shrink:0;position:relative}
+  .phone.float{animation:floaty 5.5s ease-in-out infinite}
+  .phone .notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:120px;height:22px;background:#0B1220;border-radius:0 0 16px 16px;z-index:5}
+  .phone .screen{width:100%;height:100%;border-radius:30px;overflow:hidden;position:relative;background:#fff}
+  .scr-top{padding:44px 18px 10px;font-weight:800;font-size:20px;color:#fff;background:linear-gradient(160deg,#1A56DB,#1E40AF)}
+  .scr-card{background:rgba(255,255,255,.16);margin:10px 14px 0;padding:13px;border-radius:14px;font-size:13px;color:#fff}
+  .scr-card .t{font-size:11px;opacity:.85}.scr-card .v{font-size:21px;font-weight:800;margin-top:2px}
+  .scr-list{padding:14px}
+  .scr-pill{display:flex;align-items:center;gap:10px;padding:9px;border-radius:12px;background:#F5F7FB;margin-bottom:9px}
+  .scr-dot{width:32px;height:32px;border-radius:9px;background:#E8EEFB;display:flex;align-items:center;justify-content:center;font-size:17px}
   .scr-pill small{color:var(--muted);font-size:11px}
+  .scr-pill b{font-size:13px}
 
-  /* SECTIONS */
+  /* ===== Demo con scroll ===== */
+  .demo{padding:40px 0 0}
+  .demo-grid{display:grid;grid-template-columns:300px 1fr;gap:40px;align-items:start}
+  .demo-phone-wrap{position:sticky;top:40px;display:flex;justify-content:center}
+  .demo-steps{display:flex;flex-direction:column}
+  .demo-step{min-height:78vh;display:flex;flex-direction:column;justify-content:center}
+  .demo-step .k{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--azul);background:#E8EEFB;padding:6px 12px;border-radius:20px;width:fit-content;margin-bottom:14px}
+  .demo-step h3{font-size:30px;margin-bottom:10px}
+  .demo-step p{color:var(--muted);font-size:17px;max-width:440px}
+  .demo-step{opacity:.35;transition:opacity .4s} .demo-step.on{opacity:1}
+
+  /* Pantallas apiladas dentro del teléfono */
+  .app-screen{position:absolute;inset:0;opacity:0;transition:opacity .5s ease;background:#fff;display:flex;flex-direction:column}
+  .app-screen.active{opacity:1}
+
+  /* Animaciones de cada pantalla (corren al activarse) */
+  @keyframes barfill{from{width:0}to{width:66%}}
+  @keyframes popIn{0%{transform:scale(0);opacity:0}60%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+  @keyframes fadeOutUp{to{opacity:0;transform:translateY(-10px)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes scanMove{0%{top:10%}50%{top:78%}100%{top:10%}}
+  @keyframes typeIn{from{width:0}to{width:100%}}
+  @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(26,86,219,.45)}50%{box-shadow:0 0 0 18px rgba(26,86,219,0)}}
+  @keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+
+  .bar{height:12px;background:#E8EEFB;border-radius:8px;overflow:hidden;margin-top:8px}
+  .bar-fill{height:100%;width:0;background:linear-gradient(90deg,#10B981,#34D399);border-radius:8px}
+  .active .bar-fill{animation:barfill 1.4s ease forwards}
+
+  .dose-btn{background:#10B981;color:#fff;text-align:center;padding:11px;border-radius:12px;font-weight:700;font-size:13px;margin-top:6px}
+  .active .dose-btn{animation:fadeOutUp .5s ease 1.2s forwards}
+  .dose-check{position:absolute;left:14px;right:14px;bottom:16px;background:#ECFDF5;color:#059669;border-radius:12px;padding:11px;text-align:center;font-weight:700;font-size:13px;opacity:0}
+  .active .dose-check{animation:popIn .5s ease 1.3s both}
+
+  .cam{flex:1;margin:14px;border-radius:16px;background:#0B1220;position:relative;overflow:hidden;border:2px solid #1A56DB}
+  .scan-line{position:absolute;left:8%;right:8%;height:3px;background:#34D399;box-shadow:0 0 12px #34D399;top:10%}
+  .active .scan-line{animation:scanMove 2.4s ease-in-out infinite}
+  .cam .frame{position:absolute;left:14%;right:14%;top:38%;height:60px;border:2px solid rgba(255,255,255,.8);border-radius:8px}
+  .scan-result{margin:0 14px 16px;background:#EFF4FF;border-radius:12px;padding:12px;opacity:0}
+  .scan-result b{color:#1A56DB;font-size:13px}.scan-result small{color:var(--muted);font-size:11px;display:block;margin-top:3px}
+  .active .scan-result{animation:fadeUp .6s ease 1.3s both}
+
+  .mic{width:84px;height:84px;border-radius:50%;background:#1A56DB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:36px;margin:24px auto 16px}
+  .active .mic{animation:micPulse 1.6s ease-in-out infinite}
+  .voice-text{margin:0 auto;white-space:nowrap;overflow:hidden;width:0;font-size:13px;color:#0B1220;border-right:2px solid #1A56DB;max-width:90%}
+  .active .voice-text{animation:typeIn 2s steps(40) .5s forwards}
+  .chips{display:flex;gap:8px;justify-content:center;margin-top:14px}
+  .chip{background:#E8EEFB;color:#1A56DB;font-weight:700;font-size:12px;padding:6px 12px;border-radius:20px;opacity:0}
+  .active .chip{animation:popIn .4s ease both}
+  .active .chip:nth-child(1){animation-delay:2.4s}.active .chip:nth-child(2){animation-delay:2.7s}
+
+  .cal-ev{margin:14px;border-left:4px solid #1A56DB;background:#F5F7FB;border-radius:10px;padding:12px}
+  .cal-ev b{font-size:13px}.cal-ev small{color:var(--muted);font-size:11px;display:block}
+  .cal-toast{position:absolute;left:14px;right:14px;top:70px;background:#0B1220;color:#fff;border-radius:12px;padding:12px;font-size:12px;display:flex;gap:10px;align-items:center;opacity:0}
+  .active .cal-toast{animation:slideInRight .6s ease 1.1s both}
+
+  /* ===== Secciones ===== */
   section{padding:64px 0}
   .sec-title{text-align:center;font-size:32px;font-weight:800;margin-bottom:10px}
   .sec-sub{text-align:center;color:var(--muted);margin-bottom:44px;font-size:16px}
-
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px}
-  .card{background:#fff;border-radius:18px;padding:26px;box-shadow:0 6px 24px rgba(16,24,40,.06);
-    border:1px solid #EEF1F6;transition:transform .15s,box-shadow .15s}
-  .card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(26,86,219,.14)}
-  .card .ico{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--azul),var(--azul2));
-    display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:16px}
-  .card h3{font-size:18px;margin-bottom:6px}
-  .card p{color:var(--muted);font-size:14px}
+  .card{background:#fff;border-radius:18px;padding:26px;box-shadow:0 6px 24px rgba(16,24,40,.06);border:1px solid #EEF1F6;transition:transform .2s,box-shadow .2s}
+  .card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(26,86,219,.16)}
+  .card .ico{width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,#1A56DB,#1E40AF);display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:16px;transition:transform .3s}
+  .card:hover .ico{transform:rotate(-8deg) scale(1.08)}
+  .card h3{font-size:18px;margin-bottom:6px}.card p{color:var(--muted);font-size:14px}
 
-  .band{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff}
+  .band{background:linear-gradient(120deg,#1A56DB,#1E40AF,#2563EB,#1A56DB);background-size:300% 300%;animation:gradientShift 14s ease infinite;color:#fff}
   .band .grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
-  .stat{text-align:center}
-  .stat b{font-size:40px;font-weight:800;display:block}
-  .stat span{opacity:.9}
+  .stat{text-align:center}.stat b{font-size:42px;font-weight:800;display:block}.stat span{opacity:.9}
 
   .team{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px}
-  .member{background:#fff;border-radius:18px;padding:28px;text-align:center;border:1px solid #EEF1F6}
-  .avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;
-    background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800}
-  .member b{font-size:17px}
-  .member span{color:var(--muted);font-size:13px;display:block;margin-top:4px}
+  .member{background:#fff;border-radius:18px;padding:28px;text-align:center;border:1px solid #EEF1F6;transition:transform .2s}
+  .member:hover{transform:translateY(-5px)}
+  .avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;background:linear-gradient(135deg,#1A56DB,#1E40AF);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800}
+  .member b{font-size:17px}.member span{color:var(--muted);font-size:13px;display:block;margin-top:4px}
 
-  .legal{background:#fff;border-radius:18px;padding:26px;border:1px solid #EEF1F6;
-    display:flex;gap:16px;align-items:flex-start;max-width:760px;margin:0 auto}
+  .legal{background:#fff;border-radius:18px;padding:26px;border:1px solid #EEF1F6;display:flex;gap:16px;align-items:flex-start;max-width:780px;margin:0 auto}
   .legal .ico{font-size:30px}
 
-  footer{background:var(--dark);color:#fff;text-align:center;padding:40px 0;margin-top:20px}
-  footer .logo{width:54px;height:54px;border-radius:14px}
+  footer{background:var(--dark);color:#fff;text-align:center;padding:44px 0;margin-top:20px}
+  footer .logo{width:54px;height:54px;border-radius:14px;margin:0 auto;background:#fff;display:flex;align-items:center;justify-content:center}
   footer .logo svg{width:30px;height:30px}
   footer p{opacity:.7;font-size:13px;margin-top:12px}
 
-  @media(max-width:720px){ h1{font-size:42px} .hero{gap:30px} }
+  /* ===== Extra: más llamativo ===== */
+  @keyframes shine{0%{left:-60%}60%,100%{left:140%}}
+  @keyframes floatChip{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  @keyframes hue{0%{filter:hue-rotate(0)}100%{filter:hue-rotate(360deg)}}
+
+  /* Brillo que recorre el badge de Google Play */
+  .gp-badge{position:relative;overflow:hidden}
+  .gp-badge::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(120deg,transparent,rgba(255,255,255,.45),transparent);
+    transform:skewX(-20deg);animation:shine 3.5s ease-in-out infinite}
+
+  /* Título de sección con subrayado degradado */
+  .sec-title{position:relative}
+  .sec-title::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-12px;
+    width:64px;height:5px;border-radius:5px;background:linear-gradient(90deg,#1A56DB,#10B981)}
+  .sec-sub{margin-top:26px}
+
+  /* Íconos de features con colores vivos y variados */
+  .feat .card .ico{box-shadow:0 8px 20px rgba(26,86,219,.25)}
+  .feat .card:nth-child(1) .ico{background:linear-gradient(135deg,#1A56DB,#2563EB)}
+  .feat .card:nth-child(2) .ico{background:linear-gradient(135deg,#10B981,#059669);box-shadow:0 8px 20px rgba(16,185,129,.3)}
+  .feat .card:nth-child(3) .ico{background:linear-gradient(135deg,#8B5CF6,#6D28D9);box-shadow:0 8px 20px rgba(139,92,246,.3)}
+  .feat .card:nth-child(4) .ico{background:linear-gradient(135deg,#EF4444,#B91C1C);box-shadow:0 8px 20px rgba(239,68,68,.3)}
+  .feat .card:nth-child(5) .ico{background:linear-gradient(135deg,#F59E0B,#D97706);box-shadow:0 8px 20px rgba(245,158,11,.3)}
+  .feat .card:nth-child(6) .ico{background:linear-gradient(135deg,#06B6D4,#0891B2);box-shadow:0 8px 20px rgba(6,182,212,.3)}
+  .feat .card:nth-child(7) .ico{background:linear-gradient(135deg,#EC4899,#BE185D);box-shadow:0 8px 20px rgba(236,72,153,.3)}
+  .feat .card:nth-child(8) .ico{background:linear-gradient(135deg,#0EA5E9,#1A56DB);box-shadow:0 8px 20px rgba(14,165,233,.3)}
+  /* Borde superior de color al pasar el mouse */
+  .feat .card{position:relative;overflow:hidden}
+  .feat .card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,#1A56DB,#10B981);transform:scaleX(0);transform-origin:left;transition:transform .3s}
+  .feat .card:hover::before{transform:scaleX(1)}
+
+  /* Mockup del hero: aro de luz detrás */
+  .hero .phone::before{content:"";position:absolute;inset:-30px;border-radius:60px;
+    background:radial-gradient(circle,rgba(255,255,255,.25),transparent 70%);z-index:-1}
+
+  @media(max-width:860px){
+    h1{font-size:42px} .hero{gap:30px} section{padding:48px 0}
+    .demo-grid{grid-template-columns:1fr;gap:10px}
+    .demo-phone-wrap{position:sticky;top:10px;transform:scale(.85);margin-bottom:-40px}
+    .demo-step{min-height:70vh}
+  }
 </style>
 </head>
 <body>
 
 <!-- HERO -->
 <header>
+  <div class="blob a"></div><div class="blob b"></div>
   <div class="wrap hero">
     <div class="hero-text">
       <div class="logo-row">
         <div class="logo">
-          <!-- Logo CuidApp: cruz médica -->
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
             <rect x="42" y="20" width="16" height="60" rx="4" fill="#1A56DB"/>
             <rect x="20" y="42" width="60" height="16" rx="4" fill="#1A56DB"/>
           </svg>
         </div>
-        <div>
-          <h1>CuidApp</h1>
-        </div>
+        <h1>CuidApp</h1>
       </div>
       <div class="tagline">Tu salud en tus manos 💙</div>
-      <p class="pitch">
-        La app que ayuda a adultos mayores y a sus cuidadores a no olvidar ningún
-        medicamento. Recordatorios, control de dosis, alertas de emergencia y
-        vínculo paciente–cuidador, todo en un solo lugar.
-      </p>
+      <p class="pitch">La app que ayuda a adultos mayores y a sus cuidadores a no olvidar ningún
+        medicamento ni control médico. Recordatorios por dosis, escáner inteligente,
+        alertas de emergencia y vínculo paciente–cuidador.</p>
       <div class="badges">
         <div class="gp-badge">
           <svg class="tri" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-            <path d="M48 32 L300 256 L48 480 Z" fill="#34A853"/>
-            <path d="M48 32 L300 256 L380 176 Z" fill="#FBBC04"/>
-            <path d="M48 480 L300 256 L380 336 Z" fill="#EA4335"/>
-            <path d="M380 176 L300 256 L380 336 L470 256 Z" fill="#4285F4"/>
+            <path d="M48 32 L300 256 L48 480 Z" fill="#34A853"/><path d="M48 32 L300 256 L380 176 Z" fill="#FBBC04"/>
+            <path d="M48 480 L300 256 L380 336 Z" fill="#EA4335"/><path d="M380 176 L300 256 L380 336 L470 256 Z" fill="#4285F4"/>
           </svg>
-          <div>
-            <small>Próximamente en</small>
-            <b>Google Play</b>
-          </div>
+          <div><small>Próximamente en</small><b>Google Play</b></div>
         </div>
-        <div class="soon">🚀 Lanzamiento 2026</div>
+        <div class="soon">🚀 Próximamente</div>
       </div>
     </div>
 
-    <!-- Mockup de teléfono -->
-    <div class="phone">
+    <div class="phone float">
       <div class="notch"></div>
       <div class="screen">
         <div class="scr-top">Inicio</div>
-        <div class="scr-card">
-          <div class="t">Recordatorios pendientes hoy</div>
-          <div class="v">2 de 3 tomados</div>
-        </div>
-        <div class="scr-list">
-          <div class="scr-pill">
-            <div class="scr-dot">💊</div>
-            <div><b>Losartán 50mg</b><br><small>Próxima dosis: 14:00</small></div>
-          </div>
-          <div class="scr-pill">
-            <div class="scr-dot">💊</div>
-            <div><b>Metformina 850mg</b><br><small>Tomado ✓ 08:05</small></div>
-          </div>
-          <div class="scr-pill">
-            <div class="scr-dot">🩺</div>
-            <div><b>Control cardiología</b><br><small>En 3 días</small></div>
-          </div>
+        <div class="scr-card"><div class="t">Adherencia de hoy</div><div class="v">2 de 3 tomados</div></div>
+        <div class="scr-list" style="background:#fff;border-radius:22px 22px 0 0;margin-top:10px;flex:1">
+          <div class="scr-pill"><div class="scr-dot">💊</div><div><b>Losartán 50mg</b><br><small>Próxima dosis: 14:00</small></div></div>
+          <div class="scr-pill"><div class="scr-dot">✅</div><div><b>Metformina 850mg</b><br><small>Tomada · 08:05</small></div></div>
+          <div class="scr-pill"><div class="scr-dot">🩺</div><div><b>Control cardiología</b><br><small>En 3 días</small></div></div>
         </div>
       </div>
     </div>
   </div>
 </header>
 
+<!-- DEMO SCROLL -->
+<section class="demo">
+  <div class="wrap">
+    <h2 class="sec-title reveal">Míralo en acción</h2>
+    <p class="sec-sub reveal">Haz scroll y mira cómo funciona la app, paso a paso.</p>
+    <div class="demo-grid">
+      <!-- Teléfono fijo -->
+      <div class="demo-phone-wrap">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+
+            <!-- 0: Adherencia -->
+            <div class="app-screen active" data-s="0">
+              <div class="scr-top">Inicio</div>
+              <div class="scr-card"><div class="t">Adherencia de hoy</div><div class="v">66%</div>
+                <div class="bar"><div class="bar-fill"></div></div>
+              </div>
+              <div class="scr-list">
+                <div class="scr-pill"><div class="scr-dot">💊</div><div><b>2 de 3 dosis tomadas</b><br><small>¡Vas muy bien hoy!</small></div></div>
+              </div>
+            </div>
+
+            <!-- 1: Marcar dosis -->
+            <div class="app-screen" data-s="1">
+              <div class="scr-top">Medicinas</div>
+              <div class="scr-list">
+                <div class="scr-pill"><div class="scr-dot">💊</div><div><b>Losartán 50mg</b><br><small>Próxima dosis: 14:00</small></div></div>
+                <div class="dose-btn">✓ Tomar ahora (14:00)</div>
+              </div>
+              <div class="dose-check">✓ Tomado a las 14:02</div>
+            </div>
+
+            <!-- 2: Escáner -->
+            <div class="app-screen" data-s="2">
+              <div class="scr-top">Escáner</div>
+              <div class="cam"><div class="frame"></div><div class="scan-line"></div></div>
+              <div class="scan-result"><b>Paracetamol 500mg</b>
+                <small>Para qué sirve: alivia el dolor leve y baja la fiebre.</small></div>
+            </div>
+
+            <!-- 3: Voz -->
+            <div class="app-screen" data-s="3">
+              <div class="scr-top">Agregar por voz</div>
+              <div style="padding:10px 14px;text-align:center">
+                <div class="mic">🎤</div>
+                <div class="voice-text">"Losartán 50 mg a las 8 y a las 20"</div>
+                <div class="chips"><span class="chip">08:00</span><span class="chip">20:00</span></div>
+              </div>
+            </div>
+
+            <!-- 4: Calendario -->
+            <div class="app-screen" data-s="4">
+              <div class="scr-top">Control médico</div>
+              <div class="cal-ev"><b>Cardiología — Dr. Pérez</b><small>15 jul · 10:00</small></div>
+              <div class="cal-ev"><b>📅 Guardado en tu calendario</b><small>Google Calendar</small></div>
+              <div class="cal-toast">🔔 <div>Control de cardiología<br><small style="opacity:.8">en 2 horas</small></div></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Pasos -->
+      <div class="demo-steps">
+        <div class="demo-step on" data-s="0"><div class="k">📊 Inicio</div><h3>Tu adherencia, de un vistazo</h3>
+          <p>Al abrir la app ves cuántas dosis llevas hoy y tus próximos medicamentos. Todo claro y en grande.</p></div>
+        <div class="demo-step" data-s="1"><div class="k">💊 Dosis</div><h3>Marca cada toma</h3>
+          <p>Toca "Tomar ahora" y la dosis queda registrada. Si no la marcas a tiempo, avisamos a tu cuidador.</p></div>
+        <div class="demo-step" data-s="2"><div class="k">📷 Escáner</div><h3>Escanea la caja</h3>
+          <p>Apunta al nombre del medicamento: lo reconoce y te muestra para qué sirve y sus efectos secundarios.</p></div>
+        <div class="demo-step" data-s="3"><div class="k">🎙️ Voz</div><h3>Agrégalo hablando</h3>
+          <p>Dicta el medicamento con sus horarios y la app los completa. También sirve para tus controles médicos.</p></div>
+        <div class="demo-step" data-s="4"><div class="k">📅 Controles</div><h3>Citas en tu calendario</h3>
+          <p>Agenda un control y se guarda en el calendario del teléfono, con un recordatorio 2 horas antes.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FEATURES -->
 <section>
   <div class="wrap">
-    <h2 class="sec-title">Todo para no olvidar tu tratamiento</h2>
-    <p class="sec-sub">Pensada para ser simple, clara y accesible para adultos mayores.</p>
-    <div class="grid">
-      <div class="card"><div class="ico">⏰</div><h3>Recordatorios inteligentes</h3>
-        <p>Avisos por cada dosis y por días de la semana. Si no la marcas a tiempo, alerta al instante.</p></div>
-      <div class="card"><div class="ico">💊</div><h3>Control por dosis</h3>
-        <p>Cada medicamento con sus horarios. Marca "Tomar ahora" y registra tu cumplimiento diario.</p></div>
-      <div class="card"><div class="ico">🆘</div><h3>Botón de emergencia (SOS)</h3>
-        <p>El paciente pulsa SOS y su cuidador recibe una alerta con vibración al instante.</p></div>
-      <div class="card"><div class="ico">👥</div><h3>Vínculo paciente–cuidador</h3>
-        <p>El cuidador gestiona los medicamentos de su familiar y recibe sus avisos y emergencias.</p></div>
-      <div class="card"><div class="ico">📷</div><h3>Escáner con OCR</h3>
-        <p>Apunta a la caja: lee el nombre y muestra para qué sirve y sus efectos secundarios.</p></div>
-      <div class="card"><div class="ico">🗺️</div><h3>Farmacias y centros cerca</h3>
-        <p>Encuentra farmacias y centros médicos cercanos con el mapa integrado.</p></div>
-      <div class="card"><div class="ico">📅</div><h3>Controles médicos</h3>
-        <p>Agenda tus próximas consultas por especialidad y recibe recordatorios.</p></div>
-      <div class="card"><div class="ico">🔒</div><h3>Cuenta segura</h3>
-        <p>Verificación por correo, contraseñas cifradas y código para acciones sensibles.</p></div>
+    <h2 class="sec-title reveal">Todo para no olvidar tu tratamiento</h2>
+    <p class="sec-sub reveal">Pensada para ser simple, clara y accesible.</p>
+    <div class="grid feat">
+      <div class="card reveal zoom">    <div class="ico">⏰</div><h3>Recordatorios por dosis</h3><p>Horarios y días de la semana. Marca cada dosis del día.</p></div>
+      <div class="card reveal zoom d1"> <div class="ico">📷</div><h3>Escáner en vivo (OCR)</h3><p>Lee el nombre de la caja y muestra uso y efectos secundarios.</p></div>
+      <div class="card reveal zoom d2"> <div class="ico">🎙️</div><h3>Carga por voz</h3><p>Dicta medicamentos (varios horarios) y controles médicos.</p></div>
+      <div class="card reveal zoom d3"> <div class="ico">🆘</div><h3>Botón de emergencia</h3><p>El paciente pulsa SOS y su cuidador recibe alerta con vibración.</p></div>
+      <div class="card reveal zoom">    <div class="ico">👥</div><h3>Vínculo cuidador</h3><p>Gestiona los medicamentos de tu familiar y recibe sus avisos.</p></div>
+      <div class="card reveal zoom d1"> <div class="ico">📅</div><h3>Controles + calendario</h3><p>Citas en el calendario del teléfono, con aviso 2 horas antes.</p></div>
+      <div class="card reveal zoom d2"> <div class="ico">🗺️</div><h3>Farmacias cerca</h3><p>Mapa con farmacias y centros médicos cercanos.</p></div>
+      <div class="card reveal zoom d3"> <div class="ico">🔒</div><h3>Cuenta verificada</h3><p>Verificación por correo y código para acciones sensibles.</p></div>
     </div>
   </div>
 </section>
 
 <!-- BAND -->
 <section class="band">
-  <div class="wrap">
-    <div class="grid">
-      <div class="stat"><b>3</b><span>formas de cargar medicamentos<br>(voz, escáner, manual)</span></div>
-      <div class="stat"><b>24/7</b><span>recordatorios y alertas<br>siempre activas</span></div>
-      <div class="stat"><b>+70</b><span>medicamentos en catálogo<br>+ búsqueda en línea</span></div>
-      <div class="stat"><b>0$</b><span>gratis para el<br>usuario</span></div>
-    </div>
-  </div>
+  <div class="wrap"><div class="grid">
+    <div class="stat reveal"><b data-count="2500">0</b><span>medicamentos en catálogo<br>(incluye registro del ISP)</span></div>
+    <div class="stat reveal d1"><b data-count="3">0</b><span>formas de cargar<br>(voz, escáner, manual)</span></div>
+    <div class="stat reveal d2"><b data-count="24">0</b><span>/7 recordatorios<br>y alertas activas</span></div>
+  </div></div>
 </section>
 
 <!-- TECH / LEGAL -->
-<section>
+<section style="background:#fff">
   <div class="wrap">
-    <h2 class="sec-title">Tecnología y privacidad</h2>
-    <p class="sec-sub">Construida con tecnología moderna y respetando tus datos.</p>
-    <div class="legal">
+    <h2 class="sec-title reveal">Tecnología y privacidad</h2>
+    <p class="sec-sub reveal">Construida con tecnología moderna y respetando tus datos.</p>
+    <div class="legal reveal zoom">
       <div class="ico">🛡️</div>
-      <div>
-        <h3>Protección de datos</h3>
-        <p style="color:var(--muted);margin-top:6px">
-          CuidApp trata tus datos conforme a la legislación chilena de protección de
-          datos personales (<b>Ley N° 19.628</b> y <b>Ley N° 21.719</b>). Los datos de
-          salud son sensibles: se usan solo para prestarte el servicio, con tu
-          consentimiento, y nunca se venden a terceros.
-        </p>
-        <p style="margin-top:10px;font-size:13px;color:var(--muted)">
-          Flutter · Spring Boot (microservicios) · MySQL · Firebase Cloud Messaging · Google Maps · Docker · Azure
-        </p>
+      <div><h3>Protección de datos</h3>
+        <p style="color:var(--muted);margin-top:6px">CuidApp trata tus datos conforme a la legislación chilena de protección de
+          datos personales (<b>Ley N° 19.628</b> y <b>Ley N° 21.719</b>). Los datos de salud son sensibles:
+          se usan solo para prestarte el servicio, con tu consentimiento, y nunca se venden a terceros.</p>
+        <p style="margin-top:10px;font-size:13px;color:var(--muted)">Flutter · Spring Boot · MySQL · Firebase · Google Maps · Catálogo ISP · Docker · Azure</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- TEAM -->
-<section style="background:#fff">
+<section style="background:#fff;padding-top:0">
   <div class="wrap">
-    <h2 class="sec-title">Nuestro equipo</h2>
-    <p class="sec-sub">Proyecto de Título — DuocUC</p>
+    <h2 class="sec-title reveal">Nuestro equipo</h2>
+    <p class="sec-sub reveal">Proyecto de Título — DuocUC</p>
     <div class="team">
-      <div class="member"><div class="avatar">MS</div><b>Matías Samaniego</b>
-        <span>Líder de proyecto · Full-Stack</span></div>
-      <div class="member"><div class="avatar">FG</div><b>Francisco Gómez</b>
-        <span>Desarrollo Backend</span></div>
-      <div class="member"><div class="avatar">RD</div><b>Ricardo Díaz</b>
-        <span>Desarrollo Frontend</span></div>
+      <div class="member reveal">   <div class="avatar">MS</div><b>Matías Samaniego</b><span>Líder de proyecto · Full-Stack</span></div>
+      <div class="member reveal d1"><div class="avatar">FG</div><b>Francisco Gómez</b><span>Desarrollo Backend</span></div>
+      <div class="member reveal d2"><div class="avatar">RD</div><b>Ricardo Díaz</b><span>Desarrollo Frontend</span></div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <div class="wrap">
-    <div class="logo" style="margin:0 auto;background:#fff;display:flex;align-items:center;justify-content:center">
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <rect x="42" y="20" width="16" height="60" rx="4" fill="#1A56DB"/>
-        <rect x="20" y="42" width="60" height="16" rx="4" fill="#1A56DB"/>
-      </svg>
-    </div>
+    <div class="logo"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="42" y="20" width="16" height="60" rx="4" fill="#1A56DB"/><rect x="20" y="42" width="60" height="16" rx="4" fill="#1A56DB"/></svg></div>
     <h3 style="margin-top:14px">CuidApp</h3>
     <p>Tu salud en tus manos · Próximamente en Google Play Store</p>
     <p>© 2026 CuidApp — Proyecto de Título DuocUC. Todos los derechos reservados.</p>
   </div>
 </footer>
 
+<script>
+  // Reveal general
+  const io = new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}}),{threshold:.15});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // Contadores
+  function animateCount(el){
+    const target=+el.dataset.count, suffix=el.dataset.suffix||'', dur=1400, t0=performance.now();
+    (function tick(now){const p=Math.min((now-t0)/dur,1);el.textContent=(suffix&&target===0?'0':Math.floor(p*target).toLocaleString('es-CL'))+suffix;if(p<1)requestAnimationFrame(tick);})(t0);
+  }
+  const co=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){animateCount(e.target);co.unobserve(e.target);}}),{threshold:.5});
+  document.querySelectorAll('[data-count]').forEach(el=>co.observe(el));
+
+  // Demo: cambia la pantalla del teléfono según el paso visible
+  const screens=document.querySelectorAll('.app-screen');
+  const steps=document.querySelectorAll('.demo-step');
+  function setScreen(s){
+    screens.forEach(sc=>sc.classList.toggle('active',sc.dataset.s===s));
+    steps.forEach(st=>st.classList.toggle('on',st.dataset.s===s));
+  }
+  const so=new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting) setScreen(e.target.dataset.s); });
+  },{rootMargin:'-45% 0px -45% 0px',threshold:0});
+  steps.forEach(st=>so.observe(st));
+</script>
 </body>
 </html>
