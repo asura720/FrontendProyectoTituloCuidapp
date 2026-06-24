@@ -179,6 +179,7 @@ class _VinculacionScreenState extends State<VinculacionScreen> {
     final nombre = p['name'] ?? '';
     final puedeGestionar = p['puedeGestionar'] == true;
     final solicitudPendiente = p['solicitudPendiente'] == true;
+    final confirmado = p['confirmado'] == true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -211,7 +212,7 @@ class _VinculacionScreenState extends State<VinculacionScreen> {
                 ),
               ],
             ),
-            if (solicitudPendiente) ...[
+            if (!confirmado) ...[
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
@@ -221,90 +222,116 @@ class _VinculacionScreenState extends State<VinculacionScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFFE082)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.notifications_active, color: Color(0xFFF59E0B), size: 18),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text('Solicita permiso para gestionar sus medicamentos',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => _responderSolicitud(id, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Autorizar'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _responderSolicitud(id, false),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFd4183d),
-                            ),
-                            child: const Text('Rechazar'),
-                          ),
-                        ),
-                      ],
+                child: Row(
+                  children: const [
+                    Icon(Icons.mark_email_unread_outlined,
+                        color: Color(0xFFF59E0B), size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pendiente: el paciente debe confirmar el vínculo desde el correo que le enviamos.',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
                     ),
                   ],
                 ),
               ),
             ] else ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    puedeGestionar ? Icons.lock_open : Icons.lock_outline,
-                    size: 16,
-                    color: puedeGestionar ? const Color(0xFF10B981) : Colors.grey,
+              if (solicitudPendiente) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF8E1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFFE082)),
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      puedeGestionar
-                          ? 'Puede gestionar sus propios medicamentos'
-                          : 'Solo tú gestionas sus medicamentos',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ),
-                  Switch(
-                    value: puedeGestionar,
-                    activeThumbColor: const Color(0xFF10B981),
-                    onChanged: (v) => _cambiarPermiso(id, v),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PatientMedicationsScreen(
-                      patientId: id,
-                      patientName: nombre,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.notifications_active, color: Color(0xFFF59E0B), size: 18),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text('Solicita permiso para gestionar sus medicamentos',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _responderSolicitud(id, true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Autorizar'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _responderSolicitud(id, false),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFFd4183d),
+                              ),
+                              child: const Text('Rechazar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                icon: const Icon(Icons.medication_outlined),
-                label: const Text('Gestionar medicamentos'),
+              ] else ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      puedeGestionar ? Icons.lock_open : Icons.lock_outline,
+                      size: 16,
+                      color: puedeGestionar ? const Color(0xFF10B981) : Colors.grey,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        puedeGestionar
+                            ? 'Puede gestionar sus propios medicamentos'
+                            : 'Solo tú gestionas sus medicamentos',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ),
+                    Switch(
+                      value: puedeGestionar,
+                      activeThumbColor: const Color(0xFF10B981),
+                      onChanged: (v) => _cambiarPermiso(id, v),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PatientMedicationsScreen(
+                        patientId: id,
+                        patientName: nombre,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.medication_outlined),
+                  label: const Text('Gestionar medicamentos'),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -381,7 +408,8 @@ class _CrearPacienteModalState extends State<_CrearPacienteModal> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Paciente creado correctamente'),
+            content: Text(
+                'Paciente creado. Le enviamos un correo para que confirme el vínculo.'),
             backgroundColor: Color(0xFF10B981),
           ),
         );
@@ -429,7 +457,8 @@ class _CrearPacienteModalState extends State<_CrearPacienteModal> {
               const Text('Crear cuenta de paciente',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
-              const Text('El paciente entrará con el correo y contraseña que definas.',
+              const Text(
+                  'Le enviaremos un correo para que confirme el vínculo. Entrará con el correo y contraseña que definas.',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),
               const SizedBox(height: 20),
               TextField(

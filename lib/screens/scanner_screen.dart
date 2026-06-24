@@ -608,6 +608,8 @@ class _ScannerScreenState extends State<ScannerScreen>
     final nameCtrl = TextEditingController(text: name.trim());
     final dosageCtrl = TextEditingController(text: dosage.trim());
     final List<String> times = ['08:00'];
+    final List<String> selectedDays = []; // 1=Lun ... 7=Dom (vacío = todos)
+    const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
     showModalBottomSheet(
       context: context,
@@ -721,6 +723,65 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ),
                   ],
                 ),
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Días de la semana',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700])),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(7, (i) {
+                    final dayNum = (i + 1).toString();
+                    final sel = selectedDays.contains(dayNum);
+                    return GestureDetector(
+                      onTap: () => setSheet(() {
+                        if (sel) {
+                          selectedDays.remove(dayNum);
+                        } else {
+                          selectedDays.add(dayNum);
+                        }
+                      }),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? const Color(0xFF1A56DB)
+                              : const Color(0xFFF5F7FB),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: sel
+                                ? const Color(0xFF1A56DB)
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          dayLabels[i],
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: sel ? Colors.white : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    selectedDays.isEmpty
+                        ? 'Sin selección = todos los días'
+                        : 'Solo los días marcados',
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ),
                 const SizedBox(height: 22),
                 SizedBox(
                   width: double.infinity,
@@ -747,6 +808,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                             ? '1 vez al día'
                             : '${times.length} veces al día',
                         times: List<String>.from(times),
+                        days: List<String>.from(selectedDays),
                         containerColor: const Color(0xFFf3f3f5),
                         iconColor: const Color(0xFF1A56DB),
                       );
