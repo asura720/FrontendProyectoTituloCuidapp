@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../services/catalog_service.dart';
@@ -114,7 +116,32 @@ class _ScannerScreenState extends State<ScannerScreen>
     try {
       final XFile photo = await cam.takePicture();
 
-      final inputImage = InputImage.fromFilePath(photo.path);
+      // Recortar a la banda central (la zona del recuadro) para que el OCR
+      // solo lea el nombre encuadrado y no el texto de alrededor.
+      String pathForOcr = photo.path;
+      try {
+        final bytes = await File(photo.path).readAsBytes();
+        var decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          decoded = img.bakeOrientation(decoded);
+          final w = decoded.width;
+          final h = decoded.height;
+          final crop = img.copyCrop(
+            decoded,
+            x: (w * 0.06).round(),
+            y: (h * 0.35).round(),
+            width: (w * 0.88).round(),
+            height: (h * 0.30).round(),
+          );
+          final cropPath = '${photo.path}_crop.jpg';
+          await File(cropPath).writeAsBytes(img.encodeJpg(crop));
+          pathForOcr = cropPath;
+        }
+      } catch (_) {
+        // Si falla el recorte, usamos la imagen completa.
+      }
+
+      final inputImage = InputImage.fromFilePath(pathForOcr);
       final textRecognizer =
           TextRecognizer(script: TextRecognitionScript.latin);
       final RecognizedText recognizedText =
@@ -886,15 +913,26 @@ class _ScannerScreenState extends State<ScannerScreen>
                             ],
                           ),
                         ),
-                      // Marco guía para encuadrar el nombre
+                      // Marco guía: solo se lee el texto DENTRO de este recuadro
                       if (_cameraReady)
                         Center(
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 24),
                             height: 90,
+                            alignment: Alignment.topCenter,
+                            padding: const EdgeInsets.only(top: 6),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.white, width: 2),
                               borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Centra el nombre aquí',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                              ),
                             ),
                           ),
                         ),
